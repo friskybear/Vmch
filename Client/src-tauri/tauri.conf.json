@@ -1,7 +1,7 @@
 {
-    "productName": "Client",
-    "version": "0.0.0",
-    "identifier": "com.Client.app",
+    "productName": "vmch",
+    "version": "0.1.0",
+    "identifier": "com.vmch.app",
     "build": {
       "beforeDevCommand": "npm run dev -- --host",
       "devUrl": "http://localhost:1420",
@@ -9,9 +9,11 @@
       "frontendDist": "../dist"
     },
     "app": {
+      "withGlobalTauri": true,
       "windows": [
         {
-          "title": "Client",
+          "label": "main",
+          "title": "V.M.C.H",
           "width": 800,
           "height": 600,
           "alwaysOnTop": true,

@@ -1,7 +1,7 @@
 
 DEFINE TABLE users SCHEMAFULL;
 DEFINE FIELD full_name ON users TYPE string;
-DEFINE FIELD national_code ON users TYPE string UNIQUE;
+DEFINE FIELD national_code ON users TYPE string;
 DEFINE FIELD phone_number ON users TYPE string;
 DEFINE FIELD email ON users TYPE string;
 DEFINE FIELD password_hash ON users TYPE string;
@@ -12,14 +12,14 @@ DEFINE FIELD time.updated_at ON users TYPE datetime VALUE time::now();
 
 DEFINE TABLE doctors SCHEMAFULL;
 DEFINE FIELD full_name ON doctors TYPE string;
-DEFINE FIELD medical_code ON doctors TYPE string UNIQUE;
-DEFINE FIELD national_code ON doctors TYPE string UNIQUE;
+DEFINE FIELD medical_code ON doctors TYPE string;
+DEFINE FIELD national_code ON doctors TYPE string;
 DEFINE FIELD phone_number ON doctors TYPE string;
 DEFINE FIELD email ON doctors TYPE string;
 DEFINE FIELD password_hash ON doctors TYPE string;
 DEFINE FIELD specialization ON doctors TYPE string;
 DEFINE FIELD category ON doctors TYPE record<categories>;
-DEFINE FIELD profile_image ON doctors TYPE a;
+DEFINE FIELD profile_image ON doctors TYPE string;
 DEFINE FIELD consultation_fee ON doctors TYPE number;
 DEFINE FIELD admin_commission ON doctors TYPE number;
 DEFINE FIELD wallet_balance ON doctors TYPE number DEFAULT 0;
@@ -32,7 +32,7 @@ DEFINE FIELD time.updated_at ON doctors TYPE datetime VALUE time::now();
 
 DEFINE TABLE admins SCHEMAFULL;
 DEFINE FIELD full_name ON admins TYPE string;
-DEFINE FIELD email ON admins TYPE string UNIQUE;
+DEFINE FIELD email ON admins TYPE string;
 DEFINE FIELD password_hash ON admins TYPE string;
 DEFINE FIELD time on admins type object;
 DEFINE FIELD time.created_at ON admins TYPE datetime DEFAULT time::now();

@@ -1,7 +1,14 @@
 import "react";
 import "./App.css";
+import { Outlet } from "@tanstack/react-router";
+import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 function App() {
-  return <></>;
+  return (
+    <>
+      <Outlet />
+      <TanStackRouterDevtools />
+    </>
+  );
 }
 
 export default App;

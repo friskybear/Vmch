@@ -21,7 +21,7 @@ DEFINE FIELD specialization ON doctors TYPE string;
 DEFINE FIELD category ON doctors TYPE record<categories>;
 DEFINE FIELD profile_image ON doctors TYPE string;
 DEFINE FIELD consultation_fee ON doctors TYPE number;
-DEFINE FIELD admin_commission ON doctors TYPE number;
+DEFINE FIELD admin_commission_percentage ON doctors TYPE number;
 DEFINE FIELD wallet_balance ON doctors TYPE number DEFAULT 0;
 DEFINE FIELD status ON doctors TYPE string ASSERT $value IN ['active', 'disabled'];
 DEFINE FIELD availability ON doctors TYPE number DEFAULT 10;

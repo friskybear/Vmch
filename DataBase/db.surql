@@ -1,4 +1,5 @@
-
+use ns test;
+use db test;
 DEFINE TABLE users SCHEMAFULL;
 DEFINE FIELD full_name ON users TYPE string;
 DEFINE FIELD national_code ON users TYPE string;
@@ -37,7 +38,7 @@ DEFINE FIELD updated_at ON admins TYPE datetime VALUE time::now() DEFAULT time::
 
 DEFINE TABLE sessions SCHEMAFULL;
 DEFINE FIELD doctor ON sessions TYPE record<doctors>;
-DEFINE FIELD patiant ON sessions TYPE record<users>;
+DEFINE FIELD patient ON sessions TYPE record<users>;
 DEFINE FIELD status ON sessions TYPE string DEFAULT 'new' ASSERT $value IN ['new', 'waiting' ,'answered', 'ended'];
 DEFINE FIELD end_time ON sessions TYPE option<datetime>;
 DEFINE FIELD rating ON sessions TYPE option<number>;
@@ -85,7 +86,7 @@ DEFINE FIELD updated_at ON notifications TYPE datetime VALUE time::now() DEFAULT
 
 -- Create Logs Table
 DEFINE TABLE logs SCHEMAFULL;
-DEFINE FIELD admin ON logs TYPE record<admin>;
+DEFINE FIELD admin ON logs TYPE record<admins>;
 DEFINE FIELD action ON logs TYPE string;
 DEFINE FIELD details ON logs TYPE string;
 DEFINE FIELD created_at ON logs TYPE datetime DEFAULT time::now() READONLY;

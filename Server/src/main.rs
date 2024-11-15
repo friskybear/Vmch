@@ -1,5 +1,7 @@
-use std::{net::SocketAddr, sync::Arc};
-
+mod api;
+mod error;
+mod ws;
+type Sessions = Mutex<(HashMap<SocketAddr, Uuid>, HashMap<Uuid, Session>)>;
 use actix_files::Files;
 use actix_web::{
     get, middleware,
@@ -7,58 +9,18 @@ use actix_web::{
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use actix_ws::{Message, Session};
+use api::{get_doctors_by_category, get_doctors_by_medical_code, get_doctors_by_name, test};
 use hashbrown::HashMap;
 use parking_lot::Mutex;
 use rand::seq::SliceRandom;
 use serde_json::Value;
+use std::{net::SocketAddr, sync::Arc};
 use surrealdb::{
     engine::remote::ws::{Client, Ws},
     Surreal,
 };
 use uuid::Uuid;
-mod ws;
 use ws::ws;
-
-type Sessions = Mutex<(HashMap<SocketAddr, Uuid>, HashMap<Uuid, Session>)>;
-
-mod error {
-    use actix_web::{HttpResponse, ResponseError};
-    use thiserror::Error;
-
-    #[derive(Error, Debug)]
-    pub enum Error {
-        #[error("database error")]
-        Db(String),
-    }
-
-    impl ResponseError for Error {
-        fn error_response(&self) -> HttpResponse {
-            match self {
-                Error::Db(e) => HttpResponse::InternalServerError().body(e.to_string()),
-            }
-        }
-    }
-
-    impl From<surrealdb::Error> for Error {
-        fn from(error: surrealdb::Error) -> Self {
-            eprintln!("{error}");
-            Self::Db(error.to_string())
-        }
-    }
-}
-
-#[get("/search/category/{category}")]
-async fn get_doctors_by_category(
-    category: Path<String>,
-    db: Data<Surreal<Client>>,
-) -> Result<impl Responder, error::Error> {
-    let mut result = db
-        .query("select full_name, specialization, profile_image, consultation_fee, availability, status, (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE)[0].rate as rate from doctors where category.name = $category and status = 'active' and availability > 0;")
-        .bind(("category", category.into_inner()))
-        .await?;
-    let res: Vec<Value> = result.take(0).unwrap();
-    Ok(HttpResponse::Ok().json(res))
-}
 
 #[actix_web::main]
 async fn main() {
@@ -89,6 +51,9 @@ async fn main() {
                 HashMap::<Uuid, Session>::new(),
             ))))
             .service(get_doctors_by_category)
+            .service(get_doctors_by_name)
+            .service(get_doctors_by_medical_code)
+            .service(test)
             .app_data(web::Data::new(db.clone()))
     })
     .bind(("127.0.0.1", 8080))

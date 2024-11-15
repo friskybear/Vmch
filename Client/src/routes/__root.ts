@@ -1,6 +1,6 @@
 import { createRootRoute, createRoute } from "@tanstack/react-router";
-import App from "./App";
-import Home from "./Pages/Home";
+import App from "../App";
+import Home from "./Home";
 
 
 const rootRoute = createRootRoute({
@@ -14,3 +14,4 @@ const home = createRoute({
 })
 
 export const routeTree = rootRoute.addChildren([home]);
+

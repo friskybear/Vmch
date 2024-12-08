@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vmch/pages/widgets/app_scaffold.dart';
 
 class TabsScreen extends StatelessWidget {
-
   @override
-  Widget build(BuildContext context) { 
-    return Scaffold(
+  Widget build(BuildContext context) {
+    return AppScaffold(
+      title: 'مشاوره پزشکی آنلاین',
+      centerTitle: true,
+      leadingTitle: ,
       body: Center(
-        child: SvgPicture.asset(
-          'assets/icons/ear.svg',
-          width: 24,
-          height: 24,
-        ),
+        child: Text('Your content here'),
       ),
     );
   }

@@ -15,6 +15,7 @@ async fn get_doctors_by_category(
     category: Path<String>,
     db: Data<Surreal<Client>>,
 ) -> Result<impl Responder, error::Error> {
+    println!("{}",category);
     let mut result = db
         .query("select full_name, specialization, profile_image, consultation_fee, availability, status, (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE)[0].rate as rate from doctors where category.name = $category and status = 'active' and availability > 0;")
         .bind(("category", category.into_inner()))

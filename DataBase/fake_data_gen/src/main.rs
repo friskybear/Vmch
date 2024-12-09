@@ -149,7 +149,7 @@ async fn generate_admins() {
 }
 
 async fn generate_categories() {
-    let doctorCategories = vec![
+    let categories = vec![
         "متخصص مغز و اعصاب",
         "متخصص گوش و حلق و بینی",
         "متخصص روانپزشکی",

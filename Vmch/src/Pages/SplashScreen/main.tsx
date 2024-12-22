@@ -1,9 +1,6 @@
-import React from "react";
 import ReactDOM from "react-dom/client";
 import SC from "./SplashScreen";
-
+import "../../i18";
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <SC />
-  </React.StrictMode>
+  <SC />
 );

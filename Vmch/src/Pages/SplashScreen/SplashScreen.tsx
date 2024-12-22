@@ -1,79 +1,29 @@
-import { JSX, useState } from "react";
+import { JSX, useMemo, useState } from "react";
 import { platform } from "@tauri-apps/plugin-os";
 import "./App.css";
 import { Marquee } from "@/Components/Marquee/Marquee";
 import Loader from "@/Components/Loader/Loader";
+import { listen } from "@tauri-apps/api/event";
+import { useTranslation } from "react-i18next";
 const is_mobile = platform() == "android" || platform() == "ios";
 
-function shuffle(array: (() => JSX.Element)[]): (() => JSX.Element)[] {
-  let currentIndex = array.length;
-
-  // While there remain elements to shuffle...
-  while (currentIndex != 0) {
-    // Pick a remaining element...
-    let randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-
-    // And swap it with the current element.
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex],
-      array[currentIndex],
-    ];
-  }
-  return array;
-}
-
 function SC() {
-  const [state, _setState] = useState("در حال اتصال");
-  return (
-    <div
-      className={` relative w-screen h-screen  overflow-hidden font-fa ${
-        is_mobile ? "" : "rounded-[8%]"
-      }`}
-      data-tauri-drag-region
-    >
-      <section
-        className=" relative w-screen h-screen from-background-700 to-background-600 bg-gradient-to-tr select-none overflow-hidden flex justify-center items-center"
-        data-tauri-drag-region
-      >
-        <div className="relative z-20" id="logo" data-tauri-drag-region>
-          <span data-tauri-drag-region>
-            <div className="w-32 h-[4.4rem] absolute bg-primary-800 rounded-t-full top-[4.4rem] left-2"></div>
-            <img
-              src="/Images/logo-back.png"
-              className="size-40 absolute brightness-75"
-              data-tauri-drag-region
-            />
-            <img
-              src="/Images/logo-transparent.png"
-              className="size-40 invert-[.9] opacity-100"
-              data-tauri-drag-region
-            />
-            <div
-              className="h-10 w-36 bg-white text-teal-900 ml-0.5 mt-2 badge badge-primary rounded-full  items-center  font-extrabold flex justify-center "
-              data-tauri-drag-region
-            >
-              {state !== "وصل شد" && <Loader size={40} color={[6, 147, 126]} />}
-              {state}
-            </div>
-          </span>
-        </div>
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-12 blur-lg rounded-lg bg-gradient-to-t from-primary-800 z-30  "
-          data-tauri-drag-region
-        />
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-12 blur-lg rounded-lg bg-gradient-to-b from-primary-800 z-30  "
-          data-tauri-drag-region
-        />
-        <div
-          className="pointer-events-none absolute inset-y-0 left-0 w-12 blur-lg rounded-lg bg-gradient-to-r from-primary-800  z-30 "
-          data-tauri-drag-region
-        />
-        <div
-          className="pointer-events-none absolute inset-y-0 right-0 w-12 blur-lg rounded-lg bg-gradient-to-l from-primary-800 z-30 "
-          data-tauri-drag-region
-        />
+  const [t, i18] = useTranslation();
+  const [state, setState] = useState(t("connecting"));
+  listen("connection_status", (event) => {
+    if (event.payload == "fail") {
+      setState(t("disconnect"));
+      setTimeout(() => {
+        setState(t("retrying"));
+      }, 10000);
+    }
+    if (event.payload == "success") {
+      setState(t("connected"));
+    }
+  });
+  const icon_area = useMemo(
+    () => (
+      <>
         <ul
           className=" absolute flex flex-col justify-evenly h-[max(120dvw,120dvh)] w-[max(120dvw,120dvh)] items-center  rotate-45 "
           id="icons"
@@ -112,48 +62,105 @@ function SC() {
             </Marquee>
           ))}
         </ul>
+      </>
+    ),
+    []
+  );
+
+  return (
+    <div
+      className={` relative w-screen h-screen  overflow-hidden ${
+        is_mobile ? "" : "rounded-[8%]"
+      } ${
+        i18.language === "fa" ? "font-fa text-right" : " font-Roboto text-left"
+      }`}
+      data-tauri-drag-region
+    >
+      <section
+        className=" relative w-screen h-screen from-background-700 to-background-600 bg-gradient-to-tr select-none overflow-hidden flex justify-center items-center"
+        data-tauri-drag-region
+      >
+        <div className="relative z-20" id="logo" data-tauri-drag-region>
+          <span data-tauri-drag-region>
+            <div className="w-32 h-[4.4rem] absolute bg-primary-800 rounded-t-full top-[4.4rem] left-2"></div>
+            <img
+              src="/Images/logo-back.png"
+              className="size-40 absolute brightness-75"
+              data-tauri-drag-region
+            />
+            <img
+              src="/Images/logo-transparent.png"
+              className="size-40 invert-[.9] opacity-100"
+              data-tauri-drag-region
+            />
+            <div
+              className="h-10 w-36 bg-white text-teal-900 ml-0.5 mt-2 badge badge-primary rounded-full  items-center  font-extrabold flex justify-center "
+              data-tauri-drag-region
+            >
+              {i18.language === "fa" ? (
+                <>
+                  {state === t("connecting") && (
+                    <Loader size={40} color={[6, 147, 126]} />
+                  )}
+                  {state === t("retrying") && (
+                    <Loader size={40} color={[255, 147, 126]} />
+                  )}
+                  {state}
+                </>
+              ) : (
+                <>
+                  {state}
+                  {state === t("connecting") && (
+                    <Loader size={40} color={[6, 147, 126]} />
+                  )}
+                  {state === t("retrying") && (
+                    <Loader size={40} color={[255, 147, 126]} />
+                  )}
+                </>
+              )}
+            </div>
+          </span>
+        </div>
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-12 blur-lg rounded-lg bg-gradient-to-t from-primary-800 z-30  "
+          data-tauri-drag-region
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-12 blur-lg rounded-lg bg-gradient-to-b from-primary-800 z-30  "
+          data-tauri-drag-region
+        />
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 w-12 blur-lg rounded-lg bg-gradient-to-r from-primary-800  z-30 "
+          data-tauri-drag-region
+        />
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 w-12 blur-lg rounded-lg bg-gradient-to-l from-primary-800 z-30 "
+          data-tauri-drag-region
+        />
+        {icon_area}
       </section>
     </div>
   );
 }
 export default SC;
 
-// const health_mark = () => {
-//   return (
-//     <>
-//       <svg
-//         height="100px"
-//         width="100px"
-//         version="1.1"
-//         id="_x32_"
-//         xmlns="http://www.w3.org/2000/svg"
-//         viewBox="-51.2 -51.2 614.40 614.40"
-//         fill="#eafbec"
-//         className={`absolute left-[1dvw] -top-[1.7dvh]`}
-//         stroke="#eafbec"
-//         data-tauri-drag-region
-//       >
-//         <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
-//         <g
-//           id="SVGRepo_tracerCarrier"
-//           strokeLinecap="round"
-//           strokeLinejoin="round"
-//         ></g>
-//         <g id="SVGRepo_iconCarrier">
-//           {" "}
-//           <style type="text/css"> </style>{" "}
-//           <g>
-//             {" "}
-//             <path
-//               className="st0"
-//               d="M29.002,0v368.238L256.002,512l226.996-143.762V0H29.002z M379.593,247.561H287.92v91.659h-63.836v-91.659 h-91.673v-63.843h91.673v-91.68h63.836v91.68h91.673V247.561z"
-//             ></path>{" "}
-//           </g>{" "}
-//         </g>
-//       </svg>
-//     </>
-//   );
-// };
+function shuffle(array: (() => JSX.Element)[]): (() => JSX.Element)[] {
+  let currentIndex = array.length;
+
+  // While there remain elements to shuffle...
+  while (currentIndex != 0) {
+    // Pick a remaining element...
+    let randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex],
+      array[currentIndex],
+    ];
+  }
+  return array;
+}
 
 const icn_1 = () => {
   return (

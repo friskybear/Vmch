@@ -26,6 +26,11 @@ tauri-plugin-shell = "2.2.0"
 tauri-plugin-websocket = "2.2.0"
 tauri-plugin-os = "2"
 parking_lot = "0.12.3"
+surf = { version = "2.3.2", features = [
+    "encoding",
+    "h1-client-rustls",
+], default-features = false }
+
 tokio = { version = "1.42.0", features = ["rt", "tokio-macros", "time"] }
 [profile.release]
 opt-level = 3
@@ -46,5 +51,4 @@ overflow-checks = false
 lto = "off"
 panic = 'abort'
 incremental = true
-unwind-tables = false
 codegen-units = 256

@@ -4,6 +4,8 @@ DEFINE TABLE users SCHEMAFULL;
 DEFINE FIELD full_name ON users TYPE string;
 DEFINE FIELD national_code ON users TYPE string;
 DEFINE FIELD phone_number ON users TYPE string;
+DEFINE FIELD birth_date ON users TYPE datetime;
+DEFINE FIELD gender ON users TYPE string ASSERT $value IN ['man','woman'];
 DEFINE FIELD email ON users TYPE string;
 DEFINE FIELD password_hash ON users TYPE string;
 DEFINE FIELD wallet_balance ON users TYPE number DEFAULT 0;
@@ -17,6 +19,8 @@ DEFINE FIELD national_code ON doctors TYPE string;
 DEFINE FIELD phone_number ON doctors TYPE string;
 DEFINE FIELD email ON doctors TYPE string;
 DEFINE FIELD password_hash ON doctors TYPE string;
+DEFINE FIELD birth_date ON doctors TYPE datetime;
+DEFINE FIELD gender ON doctors TYPE string ASSERT $value IN ['man','woman'];
 DEFINE FIELD specialization ON doctors TYPE string;
 DEFINE FIELD category ON doctors TYPE record<categories>;
 DEFINE FIELD profile_image ON doctors TYPE string;
@@ -32,6 +36,9 @@ DEFINE FIELD updated_at ON doctors TYPE datetime VALUE time::now() DEFAULT time:
 DEFINE TABLE admins SCHEMAFULL;
 DEFINE FIELD full_name ON admins TYPE string;
 DEFINE FIELD email ON admins TYPE string;
+DEFINE FIELD birth_date ON admins TYPE datetime;
+DEFINE FIELD national_code ON admins TYPE string;
+DEFINE FIELD gender ON admins TYPE string ASSERT $value IN ['man','woman'];
 DEFINE FIELD password_hash ON admins TYPE string;
 DEFINE FIELD created_at ON admins TYPE datetime DEFAULT time::now();
 DEFINE FIELD updated_at ON admins TYPE datetime VALUE time::now() DEFAULT time::now();
@@ -51,6 +58,11 @@ DEFINE FIELD updated_at ON sessions TYPE datetime VALUE time::now() DEFAULT time
 -- Create Categories Table
 DEFINE TABLE categories SCHEMAFULL;
 DEFINE FIELD name ON categories TYPE string;
+DEFINE FIELD title ON categories TYPE string;
+DEFINE FIELD gender ON categories TYPE string ASSERT $value IN ['man', 'woman', 'child'];
+DEFINE FIELD body_part ON categories TYPE array<string> ASSERT $value ALLINSIDE ['head', 'hand', 'chest', 'stomach', 'below-abdomen', 'feet'];
+DEFINE FIELD en_description ON categories TYPE string;
+DEFINE FIELD fa_description ON categories TYPE string;
 DEFINE FIELD created_at ON categories TYPE datetime DEFAULT time::now();
 DEFINE FIELD updated_at ON categories TYPE datetime VALUE time::now() DEFAULT time::now();
 

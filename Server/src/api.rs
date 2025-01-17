@@ -4,12 +4,21 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use derive_more::derive::Display;
+use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use surrealdb::{engine::remote::ws::Client, Surreal};
 
 use crate::error;
-
+#[derive(Deserialize, Serialize)]
+struct Category {
+    body_part: Vec<String>,
+    gender: String,
+    name: String,
+    title: String,
+    en_description: String,
+    fa_description: String,
+}
 #[get("/search/category/{category}")]
 async fn get_doctors_by_category(
     category: Path<String>,
@@ -20,7 +29,38 @@ async fn get_doctors_by_category(
         .bind(("category", category.into_inner()))
         .await?;
     let res: Vec<Value> = result.take(0).unwrap();
+
     Ok(HttpResponse::Ok().json(res))
+}
+
+#[get("/categories")]
+async fn get_categories(db: Data<Surreal<Client>>) -> Result<impl Responder, error::Error> {
+    let mut result = db
+        .query("select gender,title,name,body_part,en_description,fa_description from categories;")
+        .await?;
+    let res: Vec<Category> = result.take(0).unwrap();
+    let mut result: HashMap<String, HashMap<String, Vec<HashMap<String, String>>>> = HashMap::new();
+    for category in res {
+        let gender_entry = result
+            .entry(category.gender.clone())
+            .or_insert_with(HashMap::new);
+        for part in category.body_part {
+            let body_part_entry = gender_entry.entry(part.clone()).or_insert_with(Vec::new);
+            body_part_entry.push(HashMap::from([
+                ("name".to_string(), category.name.clone()),
+                ("title".to_string(), category.title.clone()),
+                (
+                    "en_description".to_string(),
+                    category.en_description.clone(),
+                ),
+                (
+                    "fa_description".to_string(),
+                    category.fa_description.clone(),
+                ),
+            ]));
+        }
+    }
+    Ok(HttpResponse::Ok().json(&result))
 }
 
 #[get("/search/name/{name}")]

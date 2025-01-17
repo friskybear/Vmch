@@ -1,16 +1,20 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400..800&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Knewave&family=Reem+Kufi:wght@400..700&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Vazirmatn:wght@100..900&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-
 * {
   min-width: 0px;
-  scrollbar-width: 0px;
+  scrollbar-width: none;
 }
 #aas {
   background: linear-gradient(0deg, #e9fbec, #96dc9e, #7ed58c);
 }
+input::-ms-reveal {
+  opacity: 0;
+  display: block;
+}
+
 @layer base {
   :root {
     --text-50: #f1f4f4;

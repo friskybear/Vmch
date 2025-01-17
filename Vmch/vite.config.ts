@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss  from "tailwindcss";
 
 import path, { resolve } from "node:path";
-const host = process.env.TAURI_DEV_HOST;
+const host = "0.0.0.0";
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
@@ -21,7 +21,6 @@ export default defineConfig(async () => ({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        nested: resolve(__dirname, 'public/splashscreen.html'),
       },
     },
   },

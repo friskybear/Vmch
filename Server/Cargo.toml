@@ -19,12 +19,12 @@ parking_lot = "0.12.3"
 rand = "0.8.5"
 itertools = "0.13.0"
 chrono = "0.4.38"
-hashbrown = "0.15.0"
+hashbrown = { version = "0.15.0", features = ["default", "serde"] }
 log = "0.4.22"
 actix-files = "0.6.6"
 actix-ws = "0.3.0"
 env_logger = "0.11.5"
-uuid = {version = "1.11.0", features = ["v4"]}
+uuid = { version = "1.11.0", features = ["v4"] }
 thiserror = "2.0.1"
 surrealdb = "2.0.4"
 

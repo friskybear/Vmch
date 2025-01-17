@@ -14,23 +14,13 @@
         {
           "label": "main",
           "title": "V.M.C.H",
-          "width": 800,
-          "height": 600,
+          "width": 650,
+          "height": 350,
           "alwaysOnTop": true,
           "transparent": true,
-          "visible":false
-        },
-        {
-            "decorations":false,
-            "label": "splashscreen",
-            "url": "/public/splashscreen.html",
-            "center":true,
-            "width":650,
-            "resizable":true,
-            "alwaysOnTop": true,
-            "height":350,
-            "transparent":true,
-            "shadow":false
+          "shadow":false,
+          "decorations":false,
+          "center":true
         }
       ],
       "security": {
@@ -38,7 +28,7 @@
           "default-src": "'self' customprotocol: asset:",
           "connect-src": "ipc: http://ipc.localhost",
           "font-src": ["https://fonts.gstatic.com"],
-          "img-src": "'self' asset: http://asset.localhost blob: data:",
+          "img-src": "'self' asset: http://asset.localhost blob: data: *",
           "style-src": "'unsafe-inline' 'self' https://fonts.googleapis.com"
         },
         "assetProtocol": {

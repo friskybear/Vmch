@@ -8,6 +8,8 @@ pub struct User {
     national_code: String,
     phone_number: String,
     email: String,
+    birth_data: chrono::DateTime<Utc>,
+    gender: String,
     password_hash: String,
     wallet_balance: f64,
     created_at: chrono::DateTime<Utc>,
@@ -23,6 +25,8 @@ pub struct Doctor {
     email: String,
     password_hash: String,
     specialization: String,
+    birth_data: chrono::DateTime<Utc>,
+    gender: String,
     category: RecordId,
     profile_image: String,
     consultation_fee: f64,
@@ -39,7 +43,10 @@ pub struct Doctor {
 pub struct Admin {
     full_name: String,
     email: String,
+    national_code: String,
     password_hash: String,
+    birth_data: chrono::DateTime<Utc>,
+    gender: String,
     created_at: chrono::DateTime<Utc>,
     updated_at: chrono::DateTime<Utc>,
 }

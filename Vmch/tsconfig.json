@@ -8,7 +8,7 @@
       "baseUrl": ".",
       "allowJs": true,
       "paths": {
-        "@/*": ["./src/*","./public/*"]
+        "@/*": ["./*","./src/*","./public/*"]
       },
       /* Bundler mode */
       "moduleResolution": "bundler",

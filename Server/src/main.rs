@@ -9,7 +9,9 @@ use actix_web::{
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use actix_ws::{Message, Session};
-use api::{get_doctors_by_category, get_doctors_by_medical_code, get_doctors_by_name, test};
+use api::{
+    get_categories, get_doctors_by_category, get_doctors_by_medical_code, get_doctors_by_name, test,
+};
 use hashbrown::HashMap;
 use parking_lot::Mutex;
 use rand::seq::SliceRandom;
@@ -40,7 +42,7 @@ async fn main() {
         App::new()
             .wrap(middleware::NormalizePath::trim())
             .wrap(middleware::Logger::default())
-            .service(Files::new("/static", "./Images").prefer_utf8(true))
+            .service(Files::new("/static", "./static").prefer_utf8(true))
             .route("/ws", web::get().to(ws))
             .route(
                 "/Health",
@@ -54,9 +56,10 @@ async fn main() {
             .service(get_doctors_by_name)
             .service(get_doctors_by_medical_code)
             .service(test)
+            .service(get_categories)
             .app_data(web::Data::new(db.clone()))
     })
-    .bind(("127.0.0.1", 8080))
+    .bind(("127.0.0.1", 9000))
     .unwrap()
     .run()
     .await

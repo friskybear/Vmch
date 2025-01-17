@@ -1,26 +1,32 @@
-import { JSX, useMemo, useState } from "react";
+import { JSX, useEffect, useMemo, useState } from "react";
 import { platform } from "@tauri-apps/plugin-os";
-import "./App.css";
 import { Marquee } from "@/Components/Marquee/Marquee";
 import Loader from "@/Components/Loader/Loader";
-import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 const is_mobile = platform() == "android" || platform() == "ios";
-
-function SC() {
+interface SplashScreenProp {
+  state: string;
+}
+function SplashScreen(prop: SplashScreenProp) {
   const [t, i18] = useTranslation();
   const [state, setState] = useState(t("connecting"));
-  listen("connection_status", (event) => {
-    if (event.payload == "fail") {
+  let element = document.getElementsByTagName("html")[0];
+  if (element) {
+    element.setAttribute("data-theme", "light");
+    element.setAttribute("class", "light");
+  }
+  useEffect(() => {
+    if (prop.state === "fail") {
       setState(t("disconnect"));
       setTimeout(() => {
         setState(t("retrying"));
       }, 10000);
     }
-    if (event.payload == "success") {
+    if (prop.state === "success") {
       setState(t("connected"));
     }
-  });
+  }, [prop.state]);
+
   const icon_area = useMemo(
     () => (
       <>
@@ -82,7 +88,7 @@ function SC() {
       >
         <div className="relative z-20" id="logo" data-tauri-drag-region>
           <span data-tauri-drag-region>
-            <div className="w-32 h-[4.4rem] absolute bg-primary-800 rounded-t-full top-[4.4rem] left-2"></div>
+            <div className="w-32 h-[4.4rem] absolute  bg-primary-800  rounded-t-full top-[4.4rem] left-2"></div>
             <img
               src="/Images/logo-back.png"
               className="size-40 absolute brightness-75"
@@ -142,7 +148,7 @@ function SC() {
     </div>
   );
 }
-export default SC;
+export default SplashScreen;
 
 function shuffle(array: (() => JSX.Element)[]): (() => JSX.Element)[] {
   let currentIndex = array.length;

@@ -14,7 +14,25 @@ input::-ms-reveal {
   opacity: 0;
   display: block;
 }
-
+.css-11ydt2g {
+  padding: 0px 0px 0px 20px;
+}
+:root[data-theme="dark"] {
+  .css-fggqyi {
+    background-color: #dffeff;
+  }
+  .css-xkq2wm {
+    background-color: #9cc9c2;
+  }
+}
+:root[data-theme="light"] {
+  .css-fggqyi {
+    background-color: #eef6f5;
+  }
+  .css-paihdh {
+    background-color: #9cc9c2;
+  }
+}
 @layer base {
   :root {
     --text-50: #f1f4f4;
@@ -184,4 +202,12 @@ input::-ms-reveal {
     -webkit-appearance: none;
     margin: 0;
   }
+}
+
+.noiseBackground{
+
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.dev/svgjs" viewBox="0 0 700 700" width="700" height="700" opacity="0.27"><defs><filter id="nnnoise-filter" x="-20%" y="-20%" width="140%" height="140%" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse" color-interpolation-filters="linearRGB"><feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="4" seed="15" stitchTiles="stitch" x="0%" y="0%" width="100%" height="100%" result="turbulence"></feTurbulence><feSpecularLighting surfaceScale="13" specularConstant="1" specularExponent="23" lighting-color="%23afa3cf" x="0%" y="0%" width="100%" height="100%" in="turbulence" result="specularLighting"><feDistantLight azimuth="3" elevation="125"></feDistantLight></feSpecularLighting></filter></defs><rect width="700" height="700" fill="%"></rect><rect width="700" height="700" fill="%23afa3bf" filter="url(%23nnnoise-filter)"></rect></svg>');
+
+
+
 }

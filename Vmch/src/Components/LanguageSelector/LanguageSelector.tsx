@@ -40,12 +40,12 @@ function LanguageSelector() {
                   document.getElementById("lang") as HTMLDetailsElement
                 ).removeAttribute("open");
                 i18.changeLanguage("fa");
-                localStorage.setItem("language", "fa");
                 app.setAppConfig({
                   ...app.appConfig,
                   language: "fa",
                   is_phone: app.appConfig.is_phone,
                 });
+                window.location.reload();
               }}
             >
               🇮🇷 Fa
@@ -58,12 +58,12 @@ function LanguageSelector() {
                   document.getElementById("lang") as HTMLDetailsElement
                 ).removeAttribute("open");
                 i18.changeLanguage("en");
-                localStorage.setItem("language", "en");
                 app.setAppConfig({
                   ...app.appConfig,
                   language: "en",
                   is_phone: app.appConfig.is_phone,
                 });
+                window.location.reload();
               }}
             >
               🇬🇧 En

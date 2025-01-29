@@ -10,6 +10,7 @@ interface SelectorProps {
   defaultValue: string;
   className?: string;
   divClassName?: string;
+  dynamicClassName?: string;
   name: string;
 }
 
@@ -20,6 +21,7 @@ export function Selector({
   name,
   className,
   divClassName,
+  dynamicClassName,
   ...props
 }: SelectorProps) {
   const [selected, setSelected] = React.useState(defaultValue);
@@ -36,14 +38,14 @@ export function Selector({
   return (
     <div
       className={cn(
-        " p-1 bg-background-100  rounded-full shadow-lg flex  flex-col  min-h-48 min-w-20 justify-around items-center",
+        " p-1 bg-background-200   rounded-3xl shadow-lg flex  flex-col  min-h-48 min-w-20 justify-around items-center",
         className,
         divClassName
       )}
       {...props}
     >
       {items.map((item) => (
-        <label key={item} className="relative w-16">
+        <label key={item} className="relative ">
           <input
             type="radio"
             name={name}
@@ -63,8 +65,9 @@ export function Selector({
           </span>
           {selected === item && (
             <motion.span
-              className="absolute inset-0 bg-background-500 hover:bg-background-50 rounded-full z-0 "
-              layoutId="highlight"
+              id={`highlight-${Math.random().toString(36).substr(2, 9)}`}
+              className={cn("absolute inset-0 bg-background-500 hover:bg-background-50 rounded-full z-0 ",dynamicClassName)}
+              layoutId={`highlight-${Math.random().toString(36).substr(2, 9)}`}
               transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
             />
           )}

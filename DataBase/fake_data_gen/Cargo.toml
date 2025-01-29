@@ -11,3 +11,5 @@ serde_json = "1.0.132"
 serde = "1.0.214"
 chrono = "0.4.38"
 mockd = { version = "=0.4.34", features = ["all"] }
+rust-argon2 = "2.1.0"
+sha2 = "0.10.8"

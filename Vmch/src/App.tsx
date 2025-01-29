@@ -8,7 +8,7 @@ import Header from "@/Components/Header/Header";
 import SplashScreen from "./Pages/SplashScreen/SplashScreen";
 import { invoke } from "@tauri-apps/api/core";
 import Fail from "./Pages/Fail/Fail";
-import DotPanel from "./Components/DotPanel/DotPanel";
+import { Admin, Doctor, Patient } from "./lib/utils";
 
 function App() {
   const [state, setState] = useState("");
@@ -29,11 +29,76 @@ function App() {
       const result = await invoke("fetch_text", {
         url: `${app.appConfig.server}/Health`,
       });
-      if (result == "ok") {
+      if (result == "ok" && !app.appConfig.user) {
         return result;
-      } else {
+      } else if (!app.appConfig.user) {
         throw new Error(result as string);
+      } else {
+        invoke<JSON | "Unauthorized">("post", {
+          url: `${app.appConfig.server}/sign_in`,
+          payload: {
+            email: app.appConfig.user.email,
+            password: app.appConfig.user.password,
+          },
+        }).then(async (res) => {
+          if (res === "Unauthorized") {
+            app.setAppConfig({
+              ...app.appConfig,
+              user: null,
+              is_phone: app.appConfig.is_phone,
+            });
+            //@ts-ignore
+          } else if (res["Doctor"] || res["Admin"] || res["Patient"]) {
+            //@ts-ignore
+            if (res["Doctor"]) {
+              //@ts-ignore
+              const doctor = res["Doctor"];
+              //@ts-ignore
+              doctor["password"] = app.appConfig.user.password;
+              const user: Doctor = new Doctor(doctor);
+              user.id = user.id.toString();
+              app.setAppConfig({
+                ...app.appConfig,
+                user: user,
+                is_phone: app.appConfig.is_phone,
+              });
+              //@ts-ignore
+            } else if (res["Admin"]) {
+              //@ts-ignore
+              const admin = res["Admin"];
+              //@ts-ignore
+              admin["password"] = app.appConfig.user.password;
+              const user: Admin = new Admin(admin);
+              user.id = user.id.toString();
+              app.setAppConfig({
+                ...app.appConfig,
+                user: user,
+                is_phone: app.appConfig.is_phone,
+              });
+              //@ts-ignore
+            } else if (res["Patient"]) {
+              //@ts-ignore
+              const patient = res["Patient"];
+              //@ts-ignore
+              patient["password"] = app.appConfig.user.password;
+              const user: Patient = new Patient(patient);
+              user.id = user.id.toString();
+              app.setAppConfig({
+                ...app.appConfig,
+                user: user,
+                is_phone: app.appConfig.is_phone,
+              });
+            }
+          } else {
+            app.setAppConfig({
+              ...app.appConfig,
+              user: null,
+              is_phone: app.appConfig.is_phone,
+            });
+          }
+        });
       }
+      return "ok";
     },
   });
 
@@ -76,7 +141,6 @@ function App() {
           <div className="relative bg-background-50 min-h-screen min-w-screen ">
             <Header />
             <Outlet />
-            <DotPanel className="[mask-image:radial-gradient(60dvh_circle_at_top,#ffffff99_10%,#ffffff66_50%,transparent)] opacity-80 dark:opacity-55 fill-primary-800" />
           </div>
         )
       ) : null}

@@ -10,7 +10,7 @@ export function logo(size: number) {
     >
       <g
         transform="translate(0.000000,2155.000000) scale(0.100000,-0.100000)"
-        className="fill-primary-800"
+        className="fill-primary-800 "
         stroke="none"
       >
         <path

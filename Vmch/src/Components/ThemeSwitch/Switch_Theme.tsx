@@ -13,7 +13,6 @@ const ThemeSwitch = () => {
       element.setAttribute("data-theme", window_theme);
       element.setAttribute("class", window_theme);
     }
-    localStorage.setItem("theme", window_theme);
     app.setAppConfig({
       ...app.appConfig,
       theme: window_theme,

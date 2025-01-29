@@ -1,9 +1,10 @@
-use std::sync::LazyLock;
-
 use chrono::Utc;
 use model::{Admin, Category, Doctor, Log, Notification, Payment, Session, Withdrawal};
+use rand::rngs::OsRng;
 use rand::{thread_rng, Rng};
 use serde_json::json;
+use sha2::Digest;
+use std::sync::LazyLock;
 use surrealdb::engine::remote::ws::Client;
 use surrealdb::opt::auth::Root;
 use surrealdb::sql::RecordAccess;
@@ -46,24 +47,47 @@ async fn create_fake_data() {
 }
 
 async fn generate_users() {
-    for i in 0..10 {
-        let name = mockd::name::full();
-        let national_code = mockd::person::ssn();
-        let phone_number = mockd::contact::phone();
-        let email = mockd::contact::email();
-        let password_hash = "hashed_password";
-        let wallet_balance = thread_rng().gen_range(40000..1000000);
-        let birth_date = mockd::datetime::date_range(
+    for i in 0..=10 {
+        let mut name = mockd::name::full();
+        let mut national_code = thread_rng().gen_range(1000000000u64..9999999999).to_string();
+        let mut phone_number = mockd::contact::phone();
+        let mut email = mockd::contact::email();
+        let mut rand_string = mockd::words::word().as_bytes().to_vec();
+        let mut salt = b"my secret password for hash generation";
+        let mut config = argon2::Config::default();
+        let mut password_hash =
+            argon2::hash_encoded(rand_string.as_slice(), salt.as_slice(), &config).unwrap();
+        let mut password_hash = format!("{:x}", sha2::Sha256::digest(password_hash.as_bytes()));
+        let mut wallet_balance = thread_rng().gen_range(40000..1000000);
+        let mut birth_date = mockd::datetime::date_range(
             "2000-04-23T19:30:12Z".to_string(),
             "2005-10-02T19:30:12Z".to_string(),
         );
-        let gender = if mockd::bool_rand::bool() {
+        let mut birth_date = surrealdb::Datetime::from(birth_date);
+        let mut gender = if mockd::bool_rand::bool() {
             "man"
         } else {
             "woman"
         };
+        if i == 10 {
+            name = "Test User".to_string();
+            national_code = "1234567890".to_string();
+            phone_number = "+989123456789".to_string();
+            email = "user@test.com".to_string();
+            salt = b"my secret password for hash generation";
+            config = argon2::Config::default();
+            password_hash = argon2::hash_encoded(b"123456789", salt.as_slice(), &config).unwrap();
+            password_hash = format!("{:x}", sha2::Sha256::digest(password_hash.as_bytes()));
+            wallet_balance = 50000;
+            birth_date = surrealdb::Datetime::from(
+                chrono::DateTime::parse_from_rfc3339("2002-04-23T19:30:12Z")
+                    .unwrap()
+                    .to_utc(),
+            );
+            gender = "man";
+        }
 
-        let mut result = DB
+        let result = DB
             .query("CREATE users SET id = $id, full_name = $full_name, national_code = $national_code, phone_number = $phone_number, email = $email, password_hash = $password_hash, wallet_balance = $wallet_balance, birth_date = $birth_date, gender = $gender")
             .bind(("full_name", name))
             .bind(("national_code", national_code))
@@ -80,23 +104,30 @@ async fn generate_users() {
 }
 
 async fn generate_doctors() {
-    for i in 0..10 {
-        let category_id = thread_rng().gen_range(0..3);
-        let full_name = mockd::name::full();
-        let medical_code = thread_rng().gen_range(1_000_000..9_999_999).to_string();
-        let national_code = mockd::person::ssn();
-        let phone_number = mockd::contact::phone();
-        let email = mockd::contact::email();
-        let password_hash = "hashed_password";
-        let specialization = "General";
-        let category = RecordId::from_table_key("categories", category_id);
-        let profile_image = "https://picsum.photos/300/400";
-        let consultation_fee = thread_rng().gen_range(20000..250000);
-        let admin_commission_percentage = 15;
-        let wallet_balance = thread_rng().gen_range(40000..1000000);
-        let status = "active";
-        let availability = 10;
-        let card_number = vec![
+    let mut rng = thread_rng();
+    for i in 0..=200 {
+        let mut category_id = rng.gen_range(0..2);
+        let mut full_name = mockd::name::full();
+        let mut medical_code = rng.gen_range(1_000_000..9_999_999).to_string();
+        let mut national_code = thread_rng().gen_range(1000000000u64..9999999999).to_string();
+        let mut phone_number = mockd::contact::phone();
+        let mut email = mockd::contact::email();
+        let rand_string = mockd::words::word().as_bytes().to_vec();
+        let mut salt = b"my secret password for hash generation";
+        let mut config = argon2::Config::default();
+        let password_hash =
+            argon2::hash_encoded(rand_string.as_slice(), salt.as_slice(), &config).unwrap();
+        let mut password_hash = format!("{:x}", sha2::Sha256::digest(password_hash.as_bytes()));
+
+        let mut specialization = "General";
+        let mut category = RecordId::from_table_key("categories", category_id);
+        let mut profile_image = "https://picsum.photos/300/400";
+        let mut consultation_fee = rng.gen_range(20000..250000);
+        let mut admin_commission_percentage = 15;
+        let mut wallet_balance = rng.gen_range(40000..1000000);
+        let mut status = "active";
+        let mut availability = rng.gen_range(1..10);
+        let mut card_number = vec![
             "1234 5678 9101 1121".to_string(),
             "2445 5635 9251 1621".to_string(),
         ];
@@ -104,13 +135,44 @@ async fn generate_doctors() {
             "2000-04-23T19:30:12Z".to_string(),
             "2005-10-02T19:30:12Z".to_string(),
         );
-        let gender = if mockd::bool_rand::bool() {
+        let mut birth_date = surrealdb::Datetime::from(birth_date);
+
+        let mut gender = if mockd::bool_rand::bool() {
             "man"
         } else {
             "woman"
         };
+        if i == 10 {
+            full_name = "Test Doctor".to_string();
+            medical_code = "1234567890".to_string();
+            national_code = "1234567891".to_string();
+            phone_number = "+989123456789".to_string();
+            email = "doctor@test.com".to_string();
+            salt = b"my secret password for hash generation";
+            config = argon2::Config::default();
+            password_hash = argon2::hash_encoded(b"123456789", salt.as_slice(), &config).unwrap();
+            password_hash = format!("{:x}", sha2::Sha256::digest(password_hash.as_bytes()));
+            specialization = "Skin";
+            category = RecordId::from_table_key("categories", 1);
+            profile_image = "https://picsum.photos/300/400";
+            consultation_fee = 30000;
+            admin_commission_percentage = 15;
+            wallet_balance = 50000;
+            status = "active";
+            availability = 10;
+            card_number = vec![
+                "1234 5678 9101 1121".to_string(),
+                "2445 5635 9251 1621".to_string(),
+            ];
+            birth_date = surrealdb::Datetime::from(
+                chrono::DateTime::parse_from_rfc3339("2000-04-23T19:30:12Z")
+                    .unwrap()
+                    .to_utc(),
+            );
+            gender = "man";
+        }
 
-        let mut result = DB
+        let  result = DB
             .query("CREATE doctors SET id = $id, full_name = $full_name, medical_code = $medical_code, national_code = $national_code, phone_number = $phone_number, email = $email, password_hash = $password_hash, specialization = $specialization, category = $category, profile_image = $profile_image, consultation_fee = $consultation_fee, admin_commission_percentage = $admin_commission_percentage, wallet_balance = $wallet_balance, status = $status, availability = $availability, card_number = $card_number, birth_date = $birth_date, gender = $gender")
             .bind(("full_name", full_name))
             .bind(("medical_code", medical_code))
@@ -136,22 +198,45 @@ async fn generate_doctors() {
 }
 
 async fn generate_admins() {
-    for i in 0..3 {
-        let full_name = mockd::name::full() + " Admin";
-        let email = mockd::contact::email();
-        let national_code = mockd::person::ssn();
-        let password_hash = "hashed_password";
+    for i in 0..=3 {
+        let mut full_name = mockd::name::full() + " Admin";
+        let mut email = mockd::contact::email();
+        let mut national_code = thread_rng().gen_range(1000000000u64..9999999999).to_string();
+        let rand_string = mockd::words::word().as_bytes().to_vec();
+        let mut salt = b"my secret password for hash generation";
+        let mut config = argon2::Config::default();
+        let password_hash =
+            argon2::hash_encoded(rand_string.as_slice(), salt.as_slice(), &config).unwrap();
+        let mut password_hash = format!("{:x}", sha2::Sha256::digest(password_hash.as_bytes()));
+
         let birth_date = mockd::datetime::date_range(
             "2000-04-23T19:30:12Z".to_string(),
             "2005-10-02T19:30:12Z".to_string(),
         );
-        let gender = if mockd::bool_rand::bool() {
+        let mut birth_date = surrealdb::Datetime::from(birth_date);
+
+        let mut gender = if mockd::bool_rand::bool() {
             "man"
         } else {
             "woman"
         };
+        if i == 3 {
+            full_name = "Test Admin".to_string();
+            national_code = "1234567892".to_string();
+            email = "admin@test.com".to_string();
+            salt = b"my secret password for hash generation";
+            config = argon2::Config::default();
+            password_hash = argon2::hash_encoded(b"123456789", salt.as_slice(), &config).unwrap();
+            password_hash = format!("{:x}", sha2::Sha256::digest(password_hash.as_bytes()));
+            birth_date = surrealdb::Datetime::from(
+                chrono::DateTime::parse_from_rfc3339("2002-04-23T19:30:12Z")
+                    .unwrap()
+                    .to_utc(),
+            );
+            gender = "man";
+        }
 
-        let mut result = DB
+        let result = DB
             .query("CREATE admins SET id = $id, full_name = $full_name, email = $email, password_hash = $password_hash, birth_date = $birth_date, gender = $gender, national_code = $national_code")
             .bind(("full_name", full_name))
             .bind(("national_code", national_code))
@@ -388,19 +473,21 @@ async fn generate_categories() {
      "کمک به بازیابی توانایی‌های عملکردی کودکان پس از آسیب‌ها یا جراحی‌ها."),
 ]),
 ];
-
-    for (gender, body_part, categories) in doctor_categories {
-        for (name, title, en_description, fa_description) in categories {
+    let mut i = 0usize;
+    for (gender, body_part, categories) in doctor_categories.into_iter() {
+        for (name, title, en_description, fa_description) in categories.into_iter() {
             let _result = DB
-                .query("CREATE categories SET gender = $gender, body_part = $body_part, name = $name, title = $title, en_description = $en_description, fa_description = $fa_description")
+                .query("CREATE categories SET id = $id ,gender = $gender, body_part = $body_part, name = $name, title = $title, en_description = $en_description, fa_description = $fa_description")
                 .bind(("gender", gender))
                 .bind(("body_part", vec![body_part]))
                 .bind(("name", name))
                 .bind(("title", title))
                 .bind(("en_description", en_description))
                 .bind(("fa_description", fa_description))
+                .bind(("id", i))
                 .await
                 .unwrap();
+            i += 1;
         }
     }
 }
@@ -528,6 +615,8 @@ DEFINE FIELD phone_number ON doctors TYPE string;
 DEFINE FIELD email ON doctors TYPE string;
 DEFINE FIELD password_hash ON doctors TYPE string;
 DEFINE FIELD birth_date ON doctors TYPE datetime;
+DEFINE ANALYZER name_analyzer TOKENIZERS blank FILTERS lowercase;
+DEFINE INDEX full_name_index ON TABLE doctors FIELDS full_name SEARCH ANALYZER name_analyzer BM25;
 DEFINE FIELD gender ON doctors TYPE string ASSERT $value IN ['man','woman'];
 DEFINE FIELD specialization ON doctors TYPE string;
 DEFINE FIELD category ON doctors TYPE record<categories>;
@@ -554,6 +643,12 @@ DEFINE FIELD updated_at ON admins TYPE datetime VALUE time::now() DEFAULT time::
 DEFINE TABLE sessions SCHEMAFULL;
 DEFINE FIELD doctor ON sessions TYPE record<doctors>;
 DEFINE FIELD patient ON sessions TYPE record<users>;
+DEFINE FIELD target_full_name ON sessions TYPE option<string>;
+DEFINE FIELD target_national_code ON sessions TYPE option<string>;
+DEFINE FIELD target_birth_date ON sessions TYPE option<datetime>;
+DEFINE FIELD target_gender ON sessions TYPE option<string> ASSERT $value IN ['man','woman'];
+DEFINE FIELD target_phone_number ON sessions TYPE option<string>;
+DEFINE FIELD messages ON sessions TYPE option<array<record<messages>>>;
 DEFINE FIELD status ON sessions TYPE string DEFAULT 'new' ASSERT $value IN ['new', 'waiting' ,'answered', 'ended'];
 DEFINE FIELD end_time ON sessions TYPE option<datetime>;
 DEFINE FIELD rating ON sessions TYPE option<number>;
@@ -562,6 +657,14 @@ DEFINE FIELD fee_paid ON sessions TYPE number DEFAULT 0;
 DEFINE FIELD admin_share ON sessions TYPE number DEFAULT 0;
 DEFINE FIELD created_at ON sessions TYPE datetime DEFAULT time::now();
 DEFINE FIELD updated_at ON sessions TYPE datetime VALUE time::now() DEFAULT time::now();
+
+-- Create Messages Table
+DEFINE TABLE messages SCHEMAFULL;
+DEFINE FIELD sender ON messages TYPE record<users|doctors>;
+DEFINE FIELD receiver ON messages TYPE record<doctors|users>;
+DEFINE FIELD content ON messages TYPE string;
+DEFINE FIELD created_at ON messages TYPE datetime DEFAULT time::now() READONLY;
+
 
 -- Create Categories Table
 DEFINE TABLE categories SCHEMAFULL;
@@ -611,5 +714,4 @@ DEFINE FIELD action ON logs TYPE string;
 DEFINE FIELD details ON logs TYPE string;
 DEFINE FIELD created_at ON logs TYPE datetime DEFAULT time::now() READONLY;
 DEFINE FIELD updated_at ON logs TYPE datetime VALUE time::now() DEFAULT time::now();
-
 "#;

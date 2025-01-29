@@ -1,4 +1,4 @@
-import { NavLink, redirect } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import {
   Home,
   LogOut,
@@ -18,6 +18,7 @@ import { AppContext } from "@/main";
 export default function Header() {
   const [t, i18] = useTranslation();
   const app = useContext(AppContext);
+  const nav = useNavigate();
   return (
     <header
       className={`h-20  flex justify-between pr-5 pl-5 items-center select-none bg-transparent`}
@@ -26,7 +27,7 @@ export default function Header() {
         id="logo"
         className="flex justify-between items-center w-32 h-10 pr-3 cursor-pointer"
         onClick={() => {
-          redirect("/Home");
+          nav("/");
         }}
       >
         {logo(30)}
@@ -46,8 +47,8 @@ export default function Header() {
         }`}
       >
         <NavLink
-          to="/doctors"
-          className="bflex justify-center items-center text-center h-6 w-24 "
+          to="/category/all"
+          className="flex justify-center items-center text-center  h-6 w-24 "
         >
           {t("site.tabs.doctor")}
         </NavLink>
@@ -72,10 +73,7 @@ export default function Header() {
         <div id="account" className="hidden md:flex pt-1">
           {app.appConfig.user ? (
             <details className="dropdown z-40" id="user_avatar">
-              <summary
-                className="text-text-800  hover:bg-primary-700  btn btn-outline hover:border-primary-700 font-bold min-h-2 h-10 w-36 flex justify-around items-center"
-                onClick={() => redirect("/login")}
-              >
+              <summary className="text-text-800  hover:bg-primary-700  btn btn-outline hover:border-primary-700 font-bold min-h-2 h-10 w-36 flex justify-around items-center">
                 <User className="h-5 w-5" />
                 {app.appConfig.user.fullName.split("-")[0].length > 10
                   ? app.appConfig.user.fullName.split("-")[0].substring(0, 9) +
@@ -85,7 +83,7 @@ export default function Header() {
               <ul className="menu dropdown-content bg-background-100 text-text-800 rounded-box z-[1] p-2 shadow w-36 space-y-2 ">
                 <li className="">
                   <NavLink
-                    to={"/dashboard"}
+                    to={"/Dashboard"}
                     onClick={() => {
                       (
                         document.getElementById(
@@ -99,7 +97,8 @@ export default function Header() {
                 </li>
                 <li className="">
                   <NavLink
-                    to={"/dashboard/notification"}
+                    to={"/Dashboard/Notification"}
+                    reloadDocument
                     onClick={() => {
                       (
                         document.getElementById(
@@ -113,14 +112,14 @@ export default function Header() {
                 </li>
                 <li className="">
                   <NavLink
-                    to="/sessions"
+                    to="/Dashboard/Sessions"
+                    reloadDocument
                     onClick={() => {
                       (
                         document.getElementById(
                           "user_avatar"
                         ) as HTMLDetailsElement
                       ).removeAttribute("open");
-                      redirect("/dashboard/sessions");
                     }}
                   >
                     {t("site.tabs.sessions")}
@@ -148,7 +147,7 @@ export default function Header() {
             </details>
           ) : (
             <NavLink
-              to={"/login"}
+              to={"/SignIn"}
               className="text-text-800  hover:bg-primary-700  btn btn-outline hover:border-primary-700 font-bold min-h-2 h-10 w-44 flex justify-around items-center"
             >
               <User className="h-5 w-5" />
@@ -175,6 +174,7 @@ export default function Header() {
             ></label>
             <ul className="menu bg-background-50 text-text-800 min-h-full w-52 rounded-tl-md rounded-bl-md p-4 flex-col flex justify-between">
               <div>
+                -
                 {app.appConfig.user ? (
                   <li className="mb-2 mt-2">
                     <NavLink
@@ -190,7 +190,7 @@ export default function Header() {
                 ) : (
                   <li className="mb-2 mt-2">
                     <NavLink
-                      to={"/Home"}
+                      to={"/"}
                       className={
                         i18.language === "fa" ? "font-fa" : "font-roboto"
                       }
@@ -202,7 +202,7 @@ export default function Header() {
                 )}
                 <li className="mb-2 mt-2">
                   <NavLink
-                    to={"/doctors"}
+                    to={"/category/all"}
                     className={
                       i18.language === "fa" ? "font-fa" : "font-roboto"
                     }
@@ -235,7 +235,7 @@ export default function Header() {
                 </li>
                 {!app.appConfig.user && (
                   <NavLink
-                    to={"/login"}
+                    to={"/SignIn"}
                     className={`text-text-800 hover:bg-primary-700 btn btn-outline hover:border-primary-700 font-bold min-h-2 h-12 w-40 flex flex-row p-2 justify-around items-center mb-2 mt-2 ${
                       i18.language === "fa" ? "font-fa" : "font-roboto"
                     }`}

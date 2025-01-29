@@ -25,9 +25,10 @@ pub fn run() {
             splash,
             fetch,
             fetch_text,
-            emit_event
+            emit_event,
+            post,
+            argon2
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
-

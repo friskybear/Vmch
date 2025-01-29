@@ -1,5 +1,6 @@
 mod api;
 mod error;
+mod model;
 mod ws;
 type Sessions = Mutex<(HashMap<SocketAddr, Uuid>, HashMap<Uuid, Session>)>;
 use actix_files::Files;
@@ -10,7 +11,9 @@ use actix_web::{
 };
 use actix_ws::{Message, Session};
 use api::{
-    get_categories, get_doctors_by_category, get_doctors_by_medical_code, get_doctors_by_name, test,
+    add_session, get_admins, get_categories, get_doctors, get_doctors_by_category,
+    get_doctors_by_medical_code, get_doctors_by_name, get_users, sign_in, sign_up, test,
+    upsert_admin,
 };
 use hashbrown::HashMap;
 use parking_lot::Mutex;
@@ -57,6 +60,13 @@ async fn main() {
             .service(get_doctors_by_medical_code)
             .service(test)
             .service(get_categories)
+            .service(sign_in)
+            .service(sign_up)
+            .service(add_session)
+            .service(get_admins)
+            .service(upsert_admin)
+            .service(get_doctors)
+            .service(get_users)
             .app_data(web::Data::new(db.clone()))
     })
     .bind(("127.0.0.1", 9000))

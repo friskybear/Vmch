@@ -39,14 +39,11 @@ function Home() {
   useEffect(() => {
     setSelectedBodyPart(null);
   }, [gender]);
-  useEffect(() => {
-    console.log(app.appConfig.theme);
-  }, [app.appConfig]);
   const gender_option = [t("gender.man"), t("gender.woman"), t("gender.child")];
 
   return (
     <div
-      className={`flex justify-end md:justify-around items-start md:ml-5 mr-6 flex-col relative ${
+      className={`flex justify-end md:justify-around items-start md:ml-5 mr-6 flex-col relative  ${
         i18.language === "fa" ? "font-fa" : "font-roboto"
       }`}
     >
@@ -54,7 +51,7 @@ function Home() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
-        className={`md:hidden rounded-xl shadow-inner justify-end items-center text-center flex bg-background-100 text-wrap max-w-28 sm:max-w-44 max-h-20 top-0 right-0 font-extrabold absolute text-text-800  z-10 p-2 ${
+        className={`md:hidden rounded-xl shadow-inner justify-end items-center text-center flex bg-background-100 text-wrap max-w-28 sm:max-w-44 max-h-20 top-0 right-0 font-extrabold absolute text-text-800  z-10  noiseBackground p-2 ${
           app.appConfig.language === "fa" ? "text-3xl" : "text-xl"
         }`}
       >
@@ -71,7 +68,7 @@ function Home() {
           <Hero gender={gender} setBodyPart={setSelectedBodyPart} />
         </motion.div>
         <motion.div
-          className=" w-[100dvw] md:max-w-[40dvw] md:w-fit rounded-tr-lg rounded-tl-lg  md:rounded-lg bg-background-600 md:max-h-[80dvh] md:overflow-auto z-10 md:-mt-8 "
+          className=" w-[100dvw] md:max-w-[40dvw] md:w-fit rounded-tr-lg rounded-tl-lg  md:rounded-lg bg-background-600 md:max-h-[80dvh] md:overflow-auto z-10 md:-mt-8  noiseBackground"
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
@@ -114,15 +111,10 @@ function Home() {
           divClassName="h-40"
         />
         <button
-          className="p-1 bg-background-100 rounded-full shadow-lg flex items-center justify-center h-12 mt-3 w-20"
+          className="p-1 bg-background-200 rounded-2xl shadow-lg flex items-center justify-center h-12 mt-3 w-20"
           onClick={() => setSelectedBodyPart(null)}
         >
-          <RefreshCw
-            style={{
-              filter:
-                "invert(44%) sepia(100%) saturate(100%) hue-rotate(120deg)",
-            }}
-          />
+          <RefreshCw className="text-text-800" />
         </button>
       </motion.section>
     </div>

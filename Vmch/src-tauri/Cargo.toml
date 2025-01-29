@@ -30,8 +30,9 @@ surf = { version = "2.3.2", features = [
     "encoding",
     "h1-client-rustls",
 ], default-features = false }
-
+rust-argon2 = "2.1.0"
 tokio = { version = "1.42.0", features = ["rt", "tokio-macros", "time"] }
+
 [profile.release]
 opt-level = 3
 lto = "fat"

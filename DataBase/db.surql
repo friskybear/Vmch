@@ -20,6 +20,8 @@ DEFINE FIELD phone_number ON doctors TYPE string;
 DEFINE FIELD email ON doctors TYPE string;
 DEFINE FIELD password_hash ON doctors TYPE string;
 DEFINE FIELD birth_date ON doctors TYPE datetime;
+DEFINE ANALYZER name_analyzer TOKENIZERS blank FILTERS lowercase;
+DEFINE INDEX full_name_index ON TABLE doctors FIELDS full_name SEARCH ANALYZER name_analyzer BM25;
 DEFINE FIELD gender ON doctors TYPE string ASSERT $value IN ['man','woman'];
 DEFINE FIELD specialization ON doctors TYPE string;
 DEFINE FIELD category ON doctors TYPE record<categories>;
@@ -46,6 +48,12 @@ DEFINE FIELD updated_at ON admins TYPE datetime VALUE time::now() DEFAULT time::
 DEFINE TABLE sessions SCHEMAFULL;
 DEFINE FIELD doctor ON sessions TYPE record<doctors>;
 DEFINE FIELD patient ON sessions TYPE record<users>;
+DEFINE FIELD target_full_name ON sessions TYPE option<string>;
+DEFINE FIELD target_national_code ON sessions TYPE option<string>;
+DEFINE FIELD target_birth_date ON sessions TYPE option<datetime>;
+DEFINE FIELD target_gender ON sessions TYPE option<string> ASSERT $value IN ['man','woman'];
+DEFINE FIELD target_phone_number ON sessions TYPE option<string>;
+DEFINE FIELD messages ON sessions TYPE option<array<record<messages>>>;
 DEFINE FIELD status ON sessions TYPE string DEFAULT 'new' ASSERT $value IN ['new', 'waiting' ,'answered', 'ended'];
 DEFINE FIELD end_time ON sessions TYPE option<datetime>;
 DEFINE FIELD rating ON sessions TYPE option<number>;
@@ -54,6 +62,14 @@ DEFINE FIELD fee_paid ON sessions TYPE number DEFAULT 0;
 DEFINE FIELD admin_share ON sessions TYPE number DEFAULT 0;
 DEFINE FIELD created_at ON sessions TYPE datetime DEFAULT time::now();
 DEFINE FIELD updated_at ON sessions TYPE datetime VALUE time::now() DEFAULT time::now();
+
+-- Create Messages Table
+DEFINE TABLE messages SCHEMAFULL;
+DEFINE FIELD sender ON messages TYPE record<users|doctors>;
+DEFINE FIELD receiver ON messages TYPE record<doctors|users>;
+DEFINE FIELD content ON messages TYPE string;
+DEFINE FIELD created_at ON messages TYPE datetime DEFAULT time::now() READONLY;
+
 
 -- Create Categories Table
 DEFINE TABLE categories SCHEMAFULL;

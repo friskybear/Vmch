@@ -11,9 +11,7 @@ use actix_web::{
 };
 use actix_ws::{Message, Session};
 use api::{
-    add_session, get_admins, get_categories, get_doctors, get_doctors_by_category,
-    get_doctors_by_medical_code, get_doctors_by_name, get_users, sign_in, sign_up, test,
-    upsert_admin,
+    add_session, delete_entity, get_admins, get_categories, get_categories_structured, get_doctors, get_doctors_by_category, get_doctors_by_medical_code, get_doctors_by_name, get_users, sign_in, sign_up, test, upsert_admin, upsert_doctor, upsert_user
 };
 use hashbrown::HashMap;
 use parking_lot::Mutex;
@@ -64,9 +62,13 @@ async fn main() {
             .service(sign_up)
             .service(add_session)
             .service(get_admins)
-            .service(upsert_admin)
             .service(get_doctors)
             .service(get_users)
+            .service(upsert_admin)
+            .service(upsert_user)
+            .service(upsert_doctor)
+            .service(delete_entity)
+            .service(get_categories_structured)
             .app_data(web::Data::new(db.clone()))
     })
     .bind(("127.0.0.1", 9000))

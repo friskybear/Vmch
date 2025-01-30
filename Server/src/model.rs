@@ -10,7 +10,7 @@ pub struct User {
     pub gender: String,
     pub email: String,
     pub password_hash: String,
-    pub wallet_balance: i32,
+    pub wallet_balance: i64,
     pub created_at: surrealdb::Datetime,
     pub updated_at: surrealdb::Datetime,
 }
@@ -24,7 +24,7 @@ pub struct NewUser {
     pub gender: String,
     pub email: String,
     pub password_hash: String,
-    pub wallet_balance: i32,
+    pub wallet_balance: i64,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
 }

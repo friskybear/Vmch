@@ -32,22 +32,23 @@ function Dashboard() {
   useEffect(() => {
     switch (activeTab) {
       case t("site.dashboard.title"):
-        nav("/Dashboard");
+        if (pathname !== "/Dashboard") nav("/Dashboard");
         break;
       case t("site.dashboard.Sessions"):
-        nav("/Dashboard/Sessions");
+        if (pathname !== "/Dashboard/Sessions") nav("/Dashboard/Sessions");
         break;
       case t("site.dashboard.Notification"):
-        nav("/Dashboard/Notification");
+        if (pathname !== "/Dashboard/Notification")
+          nav("/Dashboard/Notification");
         break;
       case t("site.dashboard.Settings"):
-        nav("/Dashboard/Settings");
+        if (pathname !== "/Dashboard/Settings") nav("/Dashboard/Settings");
         break;
     }
   }, [activeTab, pathname]);
 
   return (
-    <div className="h-[90dvh] w-full  p-4 bg-base-100 flex-col flex overflow-hidden space-y-1">
+    <div className=" w-full  p-4  flex-col flex  space-y-1">
       {/* Tab Navigation */}
       <Selector
         defaultValue={activeTab}
@@ -68,7 +69,7 @@ function Dashboard() {
         app.appConfig.user?.role === "admin" ? (
           <Admin />
         ) : app.appConfig.user?.role === "patient" ? (
-          <Admin />
+          <Patient />
         ) : app.appConfig.user?.role === "doctor" ? (
           <Doctor />
         ) : null
@@ -83,13 +84,15 @@ export default Dashboard;
 
 function Admin() {
   const [t, _] = useTranslation();
-  const [search_params] = useSearchParams();
+  const [search_params, set_search_params] = useSearchParams();
+  const loc = useLocation();
   const [selected, setSelected] = useState(
     search_params.get("selected") || t("site.dashboard.stats")
   );
   const navigate = useNavigate();
   useEffect(() => {
-    navigate(`/Dashboard?selected=${selected}`);
+    set_search_params({ selected: selected });
+    navigate(`${loc.pathname}?selected=${selected}`);
   }, [selected, navigate]);
   return (
     <div className="flex flex-col space-y-4 h-full w-full">
@@ -124,5 +127,7 @@ function Patient() {
   return <div>Patient</div>;
 }
 function Doctor() {
+  const app = useContext(AppContext);
+    
   return <div>Doctor</div>;
 }

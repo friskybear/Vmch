@@ -62,6 +62,7 @@ export class Doctor extends User {
     status: 'active' | 'disabled';
     availability: number;
     cardNumber: string[];
+    rating: number;
     // //@ts-ignore
 
     // constructor(
@@ -114,7 +115,8 @@ export class Doctor extends User {
         cardNumber?: string[],
         gender: 'man' | 'woman',
         birthDate: Date,
-        nationalCode: string
+        nationalCode: string,
+        rating?: number
     }) {
         super(json.id, json.fullName, json.email, "doctor", json.gender, json.birthDate, json.nationalCode , json.password);
         this.medicalCode = json.medicalCode;
@@ -128,6 +130,7 @@ export class Doctor extends User {
         this.status = json.status || 'active';
         this.availability = json.availability || 10;
         this.cardNumber = json.cardNumber || [];
+        this.rating = json.rating || 0;
     }
 }
 

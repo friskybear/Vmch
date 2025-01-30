@@ -286,7 +286,6 @@ async fn sign_in(
             .bind(("password", password.clone()))
             .await?;
         let res2: Vec<Doctor> = result2.take(0).unwrap();
-        info!("{:?}", res2);
         if !res2.is_empty() {
             let doctor = res2.first().unwrap().clone();
             let mut category = db
@@ -294,7 +293,9 @@ async fn sign_in(
                 .bind(("id", doctor.id.clone()))
                 .await?;
             let category_result: Vec<String> = category.take(0).unwrap();
-
+            let mut rating = db.query("select value (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE)[0].rate as rate from doctors where id = $id;").bind(("id", doctor.id.clone())).await?;
+            info!("{:?}", rating);
+            let rating_result: Vec<Option<f32>>  = rating.take(0).unwrap();
             let doctor_json = json!({
                 "Doctor": {
                     "id": doctor.id.to_string(),
@@ -306,6 +307,7 @@ async fn sign_in(
                     "gender": doctor.gender,
                     "walletBalance": doctor.wallet_balance,
                     "role": "doctor",
+                    "rating": rating_result.first().unwrap().unwrap_or(0.0),
                     "medicalCode": doctor.medical_code,
                     "specialization": doctor.specialization,
                     "category": category_result.first().unwrap().clone(),
@@ -476,7 +478,7 @@ async fn get_admins(
     let mut result = db
         .query(query_str.clone())
         .bind(("search_bar", query.search_bar.clone()))
-        .bind(("page", query.page - 1))
+        .bind(("page", (query.page - 1) * 40))
         .await?;
     let res: Vec<Admin> = result.take(0).unwrap();
     let res = res
@@ -568,14 +570,15 @@ async fn get_doctors(
         end = " )";
     }
     let mut query_str = format!(
-        "{}select *{} from doctors {} {} limit 40 start $page {};",
+        "{}select * {} from doctors {} {} limit 40 start $page {};",
         omit, score, search_query, order, end
     );
     let mut result = db
         .query(query_str.clone())
         .bind(("search_bar", query.search_bar.clone()))
-        .bind(("page", query.page - 1))
-        .await?;
+        .bind(("page", (query.page - 1) * 40));
+    let mut result = result.await?;
+
     let res: Vec<Doctor> = result.take(0).unwrap();
     let res = res
         .iter()
@@ -593,6 +596,7 @@ async fn get_doctors(
                 "specialization": doctor.specialization,
                 "profile_image": doctor.profile_image,
                 "consultation_fee": doctor.consultation_fee,
+                "category": doctor.category.as_ref().unwrap().to_string(),
                 "admin_commission_percentage": doctor.admin_commission_percentage,
                 "wallet_balance": doctor.wallet_balance,
                 "status": doctor.status,
@@ -656,7 +660,7 @@ async fn upsert_doctor(
         ))
         .bind(("gender", gender))
         .bind(("specialization", specialization))
-        .bind(("category", category))
+        .bind(("category", RecordId::from_str(category.as_str()).unwrap()))
         .bind(("profile_image", profile_image))
         .bind(("consultation_fee", consultation_fee))
         .bind(("admin_commission_percentage", admin_commission_percentage))
@@ -703,7 +707,7 @@ async fn get_users(
     let mut result = db
         .query(query_str.clone())
         .bind(("search_bar", query.search_bar.clone()))
-        .bind(("page", query.page - 1))
+        .bind(("page", (query.page - 1) * 40))
         .await?;
     let res: Vec<User> = result.take(0).unwrap();
     let res = res
@@ -731,6 +735,9 @@ async fn upsert_user(
     db: Data<Surreal<Client>>,
     data: actix_web::web::Json<NewUser>,
 ) -> Result<impl Responder, error::Error> {
+    println!("asda");
+    println!("{data:?}");
+
     let NewUser {
         id,
         full_name,
@@ -772,7 +779,6 @@ async fn upsert_user(
     }
 
     let mut result = result.await?;
-
     let result: Vec<User> = result.take(0).unwrap();
     Ok(HttpResponse::Ok().json(result.first().as_ref().unwrap()))
 }
@@ -789,4 +795,30 @@ async fn delete_entity(
         .await?;
     let result: Vec<Value> = result.take(0).unwrap();
     Ok(HttpResponse::Ok().json(result.first().as_ref().unwrap()))
+}
+
+#[derive(Serialize, Deserialize)]
+struct CategoryStructured {
+    id: RecordId,
+    title: String,
+    name: String,
+}
+#[get("/categories/structured")]
+async fn get_categories_structured(
+    db: Data<Surreal<Client>>,
+) -> Result<impl Responder, error::Error> {
+    let query = "select id, title, name from categories;";
+    let mut result = db.query(query).await?;
+    let res: Vec<CategoryStructured> = result.take(0).unwrap();
+    let res = res
+        .iter()
+        .map(|category| {
+            json!({
+                "id": category.id.to_string(),
+                "title": category.title,
+                "name": category.name,
+            })
+        })
+        .collect_vec();
+    Ok(HttpResponse::Ok().json(res))
 }

@@ -4,10 +4,12 @@ import type React from "react";
 import { useEffect, useState } from "react";
 
 const CardNumberComponent: React.FC<{
-  defaultValue: string[];
+  defaultValue: string[] | undefined;
   onChange: Function;
 }> = (props) => {
-  const [cardNumbers, setCardNumbers] = useState<string[]>(props.defaultValue);
+  const [cardNumbers, setCardNumbers] = useState<string[]>(
+    props.defaultValue || []
+  );
 
   useEffect(() => {
     props.onChange(cardNumbers);
@@ -37,7 +39,7 @@ const CardNumberComponent: React.FC<{
         {t("site.dashboard.card_numbers")}
       </h2>
       <div>
-        {props.defaultValue!.map((number, index) => (
+        {cardNumbers.map((number, index) => (
           <div key={index} style={{ display: "flex", marginBottom: "10px" }}>
             <input
               type="text"

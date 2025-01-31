@@ -25,7 +25,7 @@ interface Doctors {
   status: string;
   rate?: number;
 }
-interface CategoryQuery {
+export interface CategoryQuery {
   search_bar?: string;
   order?: string;
   gender?: string;

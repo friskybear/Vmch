@@ -138,6 +138,7 @@ export default function Header() {
                         user: null,
                         is_phone: prev.is_phone,
                       }));
+                      nav("/");
                     }}
                   >
                     {t("site.tabs.sign_out")}
@@ -249,13 +250,14 @@ export default function Header() {
                 {app.appConfig.user && (
                   <li className="mb-2 mt-2">
                     <button
-                      onClick={() =>
+                      onClick={() => {
                         app.setAppConfig((prev) => ({
                           ...prev,
                           user: null,
                           is_phone: prev.is_phone,
-                        }))
-                      }
+                        }));
+                        nav("/");
+                      }}
                       className={
                         i18.language === "fa" ? "font-fa" : "font-roboto"
                       }

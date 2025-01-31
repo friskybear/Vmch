@@ -72,6 +72,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
           <Route path="SignIn" element={<SignIn />} />
           <Route path="ForgotPassword" element={<ComingSoon />} />
           <Route path="SignUp" element={<SignUp />} />
+          <Route path="*" element={<ComingSoon />} />
         </Routes>
       </AppProvider>
     </QueryClientProvider>

@@ -157,6 +157,14 @@ struct DoctorPrice {
     consultation_fee: i32,
     admin_commission_percentage: i32,
 }
+#[derive(Serialize, Deserialize, Debug)]
+struct Payment {
+    user: RecordId,
+    doctor: RecordId,
+    amount: i64,
+    payment_method: String,
+    status: String,
+}
 #[post("/add_session")]
 pub async fn add_session(
     db: Data<Surreal<Client>>,
@@ -166,7 +174,6 @@ pub async fn add_session(
     let mut result = db.query("select id , consultation_fee ,admin_commission_percentage from doctors where medical_code = $medical_code").bind(("medical_code", data.medical_code)).await?;
     let doctor_prices: Vec<DoctorPrice> = result.take(0).unwrap();
     let doctor_prices = doctor_prices.into_iter().next().unwrap();
-    println!("{:?}", RecordId::from_str(data.user_id.as_str()).unwrap());
     let mut result = db
         .query("select value wallet_balance from $user_id;")
         .bind((
@@ -227,8 +234,16 @@ pub async fn add_session(
         ))
         .bind(("doctor_id", doctor_prices.id))
         .await?;
-    info!(" 2 L::: {result:?}");
-
+    let res: Vec<Payment> = db
+        .insert("payments")
+        .content(Payment {
+            user: RecordId::from_str(data.user_id.as_str()).unwrap(),
+            doctor: session.doctor.as_ref().unwrap().clone(),
+            amount: doctor_prices.consultation_fee as i64,
+            payment_method: "wallet".to_string(),
+            status: "completed".to_string(),
+        })
+        .await?;
     Ok(HttpResponse::Ok().json(session))
 }
 
@@ -295,7 +310,7 @@ async fn sign_in(
             let category_result: Vec<String> = category.take(0).unwrap();
             let mut rating = db.query("select value (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE)[0].rate as rate from doctors where id = $id;").bind(("id", doctor.id.clone())).await?;
             info!("{:?}", rating);
-            let rating_result: Vec<Option<f32>>  = rating.take(0).unwrap();
+            let rating_result: Vec<Option<f32>> = rating.take(0).unwrap();
             let doctor_json = json!({
                 "Doctor": {
                     "id": doctor.id.to_string(),
@@ -821,4 +836,400 @@ async fn get_categories_structured(
         })
         .collect_vec();
     Ok(HttpResponse::Ok().json(res))
+}
+
+#[derive(Serialize, Deserialize)]
+struct Withdrawal {
+    doctor: Option<RecordId>,
+    user: Option<RecordId>,
+    amount: i64,
+    status: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Transaction {
+    id: String,
+    amount: i32,
+}
+#[post("/withdraw")]
+async fn withdraw(
+    db: Data<Surreal<Client>>,
+    data: actix_web::web::Json<Transaction>,
+) -> Result<impl Responder, error::Error> {
+    let Transaction { id, amount } = data.into_inner();
+    let query = "update $id set wallet_balance = wallet_balance - $amount;";
+    let mut result = db
+        .query(query)
+        .bind(("id", RecordId::from_str(id.as_str()).unwrap()))
+        .bind(("amount", amount))
+        .await?;
+    let result: Vec<User> = result.take(0).unwrap();
+    if let Some(user) = result.first() {
+        if user.id.table() == "users" {
+            let res: Vec<Withdrawal> = db
+                .insert("withdrawals")
+                .content(Withdrawal {
+                    doctor: None,
+                    user: Some(user.id.clone()),
+                    amount: amount as i64,
+                    status: "approved".to_string(),
+                })
+                .await
+                .unwrap();
+        } else {
+            let res: Vec<Withdrawal> = db
+                .insert("withdrawals")
+                .content(Withdrawal {
+                    doctor: Some(user.id.clone()),
+                    user: None,
+                    amount: amount as i64,
+                    status: "approved".to_string(),
+                })
+                .await
+                .unwrap();
+        }
+
+        Ok(HttpResponse::Ok().json("ok"))
+    } else {
+        Ok(HttpResponse::Ok().json("error"))
+    }
+}
+
+#[post("/deposit")]
+async fn deposit(
+    db: Data<Surreal<Client>>,
+    data: actix_web::web::Json<Transaction>,
+) -> Result<impl Responder, error::Error> {
+    let Transaction { id, amount } = data.into_inner();
+    let query = "update $id set wallet_balance = wallet_balance + $amount;";
+    let mut result = db
+        .query(query)
+        .bind(("id", RecordId::from_str(id.as_str()).unwrap()))
+        .bind(("amount", amount))
+        .await?;
+    let result: Vec<User> = result.take(0).unwrap();
+    if let Some(_user) = result.first() {
+        Ok(HttpResponse::Ok().json("ok"))
+    } else {
+        Ok(HttpResponse::Ok().json("error"))
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct SessionQuery {
+    id: Option<String>,
+    role: Option<String>,
+}
+#[derive(Serialize, Deserialize)]
+struct SessionWithInfo {
+    id: RecordId,
+    doctor: DoctorWithInfo,
+    patient: PatientWithInfo,
+    target_full_name: Option<String>,
+    target_national_code: Option<String>,
+    target_birth_date: Option<surrealdb::Datetime>,
+    target_gender: Option<String>,
+    target_phone_number: Option<String>,
+    messages: Option<Vec<String>>,
+    status: String,
+    end_time: Option<String>,
+    rating: Option<f32>,
+    feedback: Option<String>,
+    fee_paid: i32,
+    admin_share: i32,
+    created_at: surrealdb::Datetime,
+    updated_at: surrealdb::Datetime,
+}
+
+#[derive(Serialize, Deserialize)]
+struct DoctorWithInfo {
+    id: RecordId,
+    full_name: String,
+    gender: String,
+    medical_code: String,
+    specialization: String,
+    profile_image: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct PatientWithInfo {
+    id: RecordId,
+    full_name: String,
+    gender: String,
+}
+
+#[post("/sessions")]
+async fn get_sessions(
+    db: Data<Surreal<Client>>,
+    data: actix_web::web::Json<SessionQuery>,
+    filter: actix_web::web::Query<CategoryQuery>,
+) -> Result<impl Responder, error::Error> {
+    let SessionQuery { id, role } = data.into_inner();
+    let mut search_bar = "".to_owned();
+    let mut score = "";
+    let mut order = "";
+    let mut order_score = "";
+    if let Some(searchbar) = filter.search_bar.clone() {
+        search_bar = searchbar.clone();
+        if let Some(rl) = role.clone() {
+            if let Ok(sb) = search_bar.parse::<i32>() {
+                if rl.as_str() == "admin" || rl.as_str() == "patient" {
+                    score = ",string::similarity::fuzzy(doctor.medical_code, $search_bar) AS score";
+                } else {
+                    score =
+                        ",string::similarity::fuzzy(patient.national_code, $search_bar) AS score";
+                }
+            } else if rl.as_str() == "admin" || rl.as_str() == "patient" {
+                score = ",string::similarity::fuzzy(doctor.full_name, $search_bar) AS score";
+            } else {
+                score = ",string::similarity::fuzzy(patient.national_code, $search_bar) AS score";
+            }
+        }
+    }
+    if let Some(or) = filter.order.clone() {
+        if or.to_ascii_lowercase() == "asc" {
+            order = " ASC";
+        } else {
+            order = " DESC";
+        }
+    }
+    if order.is_empty() {
+        order = " DESC";
+    }
+    if !score.is_empty() {
+        order_score = " , score DESC";
+    }
+    let mut query = format!(
+        "SELECT
+            id,
+            {{
+                id: doctor.id,
+                full_name: doctor.full_name,
+                gender: doctor.gender,
+                medical_code: doctor.medical_code,
+                specialization: doctor.specialization,
+                profile_image: doctor.profile_image
+    }} as doctor,
+            {{
+                id: patient.id,
+                full_name: patient.full_name,
+                gender: patient.gender
+    }} as patient,
+            target_full_name,
+            target_national_code,
+            target_birth_date,
+            target_gender,
+            target_phone_number,
+            messages,
+            status,
+            end_time,
+            rating,
+            feedback,
+            fee_paid,
+            admin_share,
+            created_at,
+            updated_at
+            {}
+        FROM sessions",
+        score
+    );
+    if let Some(role) = role.clone() {
+        match role.as_str() {
+            "admin" => {
+                if search_bar.parse::<i32>().is_ok() {
+                    query.push_str(" where doctor.medical_code ?~ $search_bar ");
+                } else if !search_bar.is_empty() {
+                    query.push_str(" where doctor.full_name ?~ $search_bar ");
+                }
+                query.push_str(
+                    format!(
+                        " order by created_at {} {} limit 40 start $page;",
+                        order, order_score
+                    )
+                    .as_str(),
+                );
+            }
+            "patient" => {
+                if search_bar.parse::<i32>().is_ok() {
+                    query.push_str(" where doctor.medical_code ?~ $search_bar and");
+                    query.push_str(
+                        format!(
+                            "  patient = $id order by created_at {} {} limit 40 start $page ;",
+                            order, order_score
+                        )
+                        .as_str(),
+                    );
+                } else if !search_bar.is_empty() {
+                    query.push_str(" where doctor.full_name ?~ $search_bar and");
+                    query.push_str(
+                        format!(
+                            "  patient = $id order by created_at {} {} limit 40 start $page ;",
+                            order, order_score
+                        )
+                        .as_str(),
+                    );
+                } else {
+                    query.push_str(
+                        format!(
+                            " WHERE patient = $id order by created_at {} {} limit 40 start $page ;",
+                            order, order_score
+                        )
+                        .as_str(),
+                    );
+                }
+            }
+            "doctor" => {
+                if search_bar.parse::<i32>().is_ok() {
+                    query.push_str(" where patient.national_code ?~ $search_bar and");
+                    query.push_str(
+                        format!(
+                            " WHERE doctor = $id order by created_at {} {} limit 40 start $page;",
+                            order, order_score
+                        )
+                        .as_str(),
+                    );
+                } else if !search_bar.is_empty() {
+                    query.push_str(" where patient.full_name ?~ $search_bar and");
+                    query.push_str(
+                        format!(
+                            "  doctor = $id order by created_at {} {} limit 40 start $page;",
+                            order, order_score
+                        )
+                        .as_str(),
+                    );
+                } else {
+                    query.push_str(
+                        format!(
+                            " WHERE doctor = $id order by created_at {} {} limit 40 start $page;",
+                            order, order_score
+                        )
+                        .as_str(),
+                    );
+                }
+            }
+            _ => {
+                return Ok(HttpResponse::Unauthorized().json("Unauthorized"));
+            }
+        }
+        let mut result = db.query(query.clone());
+        if let Some(id) = id {
+            result = result.bind(("id", RecordId::from_str(id.as_str()).unwrap()));
+        }
+        if let Some(search_bar) = filter.search_bar.clone() {
+            result = result.bind(("search_bar", search_bar));
+        }
+
+        result = result.bind(("page", (filter.page - 1) * 40));
+
+        let mut result = result.await?;
+        println!("{:#?}\n\n{:?}", query, result);
+        let result: Vec<SessionWithInfo> = result.take(0).unwrap();
+        let result = result
+            .iter()
+            .map(|session| {
+                json!({
+                    "id": session.id.to_string(),
+                    "doctor": {
+                        "id": session.doctor.id.to_string(),
+                        "full_name": session.doctor.full_name,
+                        "gender": session.doctor.gender,
+                        "medical_code": session.doctor.medical_code,
+                        "specialization": session.doctor.specialization,
+                        "profile_image": session.doctor.profile_image,
+                    },
+                    "patient": {
+                        "id": session.patient.id.to_string(),
+                        "full_name": session.patient.full_name,
+                        "gender": session.patient.gender,
+                    },
+                    "target_full_name": session.target_full_name,
+                    "target_national_code": session.target_national_code,
+                    "target_birth_date": session.target_birth_date,
+                    "target_gender": session.target_gender,
+                    "target_phone_number": session.target_phone_number,
+                    "messages": session.messages,
+                    "status": session.status,
+                    "end_time": session.end_time,
+                    "rating": session.rating,
+                    "feedback": session.feedback,
+                    "fee_paid": session.fee_paid,
+                    "admin_share": session.admin_share,
+                    "created_at": session.created_at,
+                    "updated_at": session.updated_at,
+                })
+            })
+            .collect_vec();
+        if result.is_empty() {
+            return Ok(HttpResponse::Ok().json("empty"));
+        }
+        return Ok(HttpResponse::Ok().json(result));
+    }
+
+    Ok(HttpResponse::Ok().json("ok"))
+}
+
+#[derive(Serialize, Deserialize)]
+struct Notifications {
+    doctor: Option<RecordId>,
+    user: Option<RecordId>,
+    admin: Option<RecordId>,
+    type_: String,
+    message: String,
+}
+async fn new_notification(
+    db: Surreal<Client>,
+    id: RecordId,
+    type_: String,
+    message: String,
+    status: String,
+) {
+    if id.table() == "doctors" {
+        let result: Vec<Notifications> = db
+            .insert("notifications")
+            .content(Notifications {
+                user: None,
+                admin: None,
+                doctor: Some(id),
+                type_,
+                message,
+            })
+            .await
+            .unwrap();
+    } else if id.table() == "users" {
+        let result: Vec<Notifications> = db
+            .insert("notifications")
+            .content(Notifications {
+                doctor: None,
+                admin: None,
+                user: Some(id),
+                type_,
+                message,
+            })
+            .await
+            .unwrap();
+    } else {
+        let result: Vec<Notifications> = db
+            .insert("notifications")
+            .content(Notifications {
+                doctor: None,
+                user: None,
+                admin: Some(id),
+                type_,
+                message,
+            })
+            .await
+            .unwrap();
+    }
+}
+#[derive(Serialize, Deserialize)]
+struct Logs {
+    action: String,
+    details: String,
+}
+async fn new_log(db: Surreal<Client>, action: String, details: String) {
+    let result: Vec<Logs> = db
+        .insert("logs")
+        .content(Logs { action, details })
+        .await
+        .unwrap();
 }

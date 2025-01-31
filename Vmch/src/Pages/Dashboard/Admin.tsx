@@ -36,7 +36,7 @@ export function Stats() {
     >
       <WobbleCard
         containerClassName="flex justify-center items-center flex-col w-[40%] min-w-60 bg-repeat h-96 bg-background-300 "
-        className=" w-full h-full flex justify-center items-center flex-col"
+        className=" w-full h-full flex justify-center items-center flex-col noiseBackground"
       >
         <User className="min-w-32 min-h-32 mb-10 fill-transparent dark:text-text-800 text-zinc-700 " />
         <h1 className="text-6xl font-bold font-fancy-en mb-7">
@@ -48,7 +48,7 @@ export function Stats() {
       </WobbleCard>
       <WobbleCard
         containerClassName="flex justify-center items-center flex-col w-[40%] min-w-60 bg-repeat h-96 bg-background-300 "
-        className="bg-repeat w-full h-full flex justify-center items-center flex-col "
+        className="bg-repeat w-full h-full flex justify-center items-center flex-col noiseBackground"
       >
         <div className="relative ">
           <div className="w-[7.6rem] h-32 mask mask-star bg-red-400 absolute mb-2 bg-gradient-to-r from-yellow-500  to-text-100 from-[50%] to-[51%] -top-1 left-[.2rem] -z-10"></div>

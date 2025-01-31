@@ -660,7 +660,7 @@ DEFINE FIELD updated_at ON sessions TYPE datetime VALUE time::now() DEFAULT time
 
 -- Create Messages Table
 DEFINE TABLE messages SCHEMAFULL;
-DEFINE FIELD sender ON messages TYPE record<users|doctors>;
+DEFINE FIELD sender ON messages TYPE record<users|doctors|admins>;
 DEFINE FIELD receiver ON messages TYPE record<doctors|users>;
 DEFINE FIELD content ON messages TYPE string;
 DEFINE FIELD created_at ON messages TYPE datetime DEFAULT time::now() READONLY;
@@ -702,14 +702,13 @@ DEFINE FIELD doctor ON notifications TYPE option<record<doctors>>;
 DEFINE FIELD admin ON notifications TYPE option<record<doctors>>;
 DEFINE FIELD user ON notifications TYPE option<record<users>>;
 DEFINE FIELD message ON notifications TYPE string;
-DEFINE FIELD type ON notifications TYPE string ASSERT $value IN ['performance', 'session', 'general'];
+DEFINE FIELD type_ ON notifications TYPE string ASSERT $value IN ['performance', 'session', 'general'];
 DEFINE FIELD status ON notifications TYPE string ASSERT $value IN ['new', 'read'];
 DEFINE FIELD created_at ON notifications TYPE datetime DEFAULT time::now() READONLY;
 DEFINE FIELD updated_at ON notifications TYPE datetime VALUE time::now() DEFAULT time::now();
 
 -- Create Logs Table
 DEFINE TABLE logs SCHEMAFULL;
-DEFINE FIELD admin ON logs TYPE record<admins>;
 DEFINE FIELD action ON logs TYPE string;
 DEFINE FIELD details ON logs TYPE string;
 DEFINE FIELD created_at ON logs TYPE datetime DEFAULT time::now() READONLY;

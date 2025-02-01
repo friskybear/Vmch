@@ -45,7 +45,7 @@ export class Admin extends User {
         nationalCode: string
     }) {
         super(json.id, json.fullName, json.email, "admin", json.gender, json.birthDate, json.nationalCode , json.password);
-        this.walletBalance = Infinity;
+        this.walletBalance = 999999999999;
     }
 }
 

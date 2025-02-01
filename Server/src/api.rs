@@ -3,7 +3,7 @@ use std::{io::Read, str::FromStr};
 use actix_web::{
     delete, get, post,
     web::{Data, Path, Payload, Query},
-    HttpResponse, Responder,
+    HttpRequest, HttpResponse, Responder,
 };
 use derive_more::derive::Display;
 use hashbrown::HashMap;
@@ -14,7 +14,7 @@ use serde_json::{json, Value};
 use sha2::Digest;
 use surrealdb::{engine::remote::ws::Client, RecordId, Surreal};
 
-use crate::error;
+use crate::{error, ws::CONNECTED_USERS};
 use crate::{
     model::{self, *},
     Sessions,
@@ -62,7 +62,7 @@ async fn get_doctors_by_category(
     } else {
         "category.title = $category and "
     };
-    let mut query_str = format!("select full_name, specialization, profile_image, consultation_fee, availability,medical_code, status,{} (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE)[0].rate as rate from doctors where {} status = 'active' and availability > 0",str,category_all);
+    let mut query_str = format!("select full_name, specialization, profile_image, consultation_fee, availability,medical_code, status,{} (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE group All)[0].rate as rate from doctors where {} status = 'active' and availability > 0",str,category_all);
     if let Some(gender) = query.gender.clone() {
         query_str.push_str(" and gender = $gender");
     }
@@ -140,9 +140,9 @@ async fn get_categories(db: Data<Surreal<Client>>) -> Result<impl Responder, err
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Guest {
-    name: String,
+    full_name: String,
     gender: String,
-    national_code: i32,
+    national_code: String,
     phone_number: String,
 }
 #[derive(Serialize, Deserialize, Debug)]
@@ -171,7 +171,8 @@ pub async fn add_session(
     data: actix_web::web::Json<Session>,
 ) -> Result<impl Responder, error::Error> {
     let data = data.into_inner();
-    let mut result = db.query("select id , consultation_fee ,admin_commission_percentage from doctors where medical_code = $medical_code").bind(("medical_code", data.medical_code)).await?;
+    println!("{:?}", data);
+    let mut result = db.query("select id , consultation_fee ,admin_commission_percentage from doctors where medical_code = $medical_code").bind(("medical_code", data.medical_code.clone())).await?;
     let doctor_prices: Vec<DoctorPrice> = result.take(0).unwrap();
     let doctor_prices = doctor_prices.into_iter().next().unwrap();
     let mut result = db
@@ -204,8 +205,8 @@ pub async fn add_session(
         .bind(("admin_share", doctor_prices.admin_commission_percentage));
     if let Some(ref guest) = data.guest_data {
         result = result
-            .bind(("guest_name", guest.name.clone()))
-            .bind(("guest_national_code", guest.national_code))
+            .bind(("guest_name", guest.full_name.clone()))
+            .bind(("guest_national_code", guest.national_code.clone()))
             .bind(("guest_gender", guest.gender.clone()))
             .bind(("phone_number", guest.phone_number.clone()))
     }
@@ -215,6 +216,34 @@ pub async fn add_session(
     let session: Vec<model::Session> = result.take(0).unwrap();
     let session = session.into_iter().next().unwrap();
     info!("session{session:?}");
+    new_log(
+        db.as_ref().clone(),
+        "session_created".to_string(),
+        format!(
+            "New session created between doctor {} and patient {}",
+            data.medical_code, data.user_id
+        ),
+    )
+    .await;
+
+    new_notification(
+        db.as_ref().clone(),
+        doctor_prices.id.clone(),
+        "session".to_string(),
+        "You have a new session request".to_string(),
+        "new".to_string(),
+    )
+    .await;
+
+    new_notification(
+        db.as_ref().clone(),
+        RecordId::from_str(data.user_id.as_str()).unwrap(),
+        "session".to_string(),
+        "Your session request has been submitted".to_string(),
+        "new".to_string(),
+    )
+    .await;
+
     let mut result = db
         .query("UPDATE users SET wallet_balance = wallet_balance - $fee WHERE id = $user_id")
         .bind(("fee", doctor_prices.consultation_fee))
@@ -225,7 +254,7 @@ pub async fn add_session(
         .await?;
     info!("{result:?}");
     let mut result = db
-        .query("UPDATE doctors SET wallet_balance = wallet_balance + $fee WHERE id = $doctor_id")
+        .query("UPDATE doctors SET availability = availability - 1, wallet_balance = wallet_balance + $fee WHERE id = $doctor_id")
         .bind((
             "fee",
             doctor_prices.consultation_fee
@@ -244,7 +273,7 @@ pub async fn add_session(
             status: "completed".to_string(),
         })
         .await?;
-    Ok(HttpResponse::Ok().json(session))
+    Ok(HttpResponse::Ok().json(json!({ "id": session.id.to_string() })))
 }
 
 #[get("/search/name/{name}")]
@@ -253,7 +282,7 @@ async fn get_doctors_by_name(
     db: Data<Surreal<Client>>,
 ) -> Result<impl Responder, error::Error> {
     let mut result = db
-        .query("select full_name, specialization, profile_image, consultation_fee, availability, status, (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE)[0].rate as rate from doctors where name @@ $name and status = 'active' and availability > 0;")
+        .query("select full_name, specialization, profile_image, consultation_fee, availability, status, ( group All[0].rate as rate from doctors where name @@ $name and status = 'active' and availability > 0;")
         .bind(("name", name.into_inner()))
         .await?;
     let res: Vec<Value> = result.take(0).unwrap();
@@ -266,7 +295,7 @@ async fn get_doctors_by_medical_code(
     db: Data<Surreal<Client>>,
 ) -> Result<impl Responder, error::Error> {
     let mut result = db
-        .query("select full_name, medical_code, national_code, phone_number, email, specialization, category.name as category, profile_image, consultation_fee, admin_commission_percentage, wallet_balance, status, availability, card_number, created_at, updated_at, (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE)[0].rate as rate from doctors where medical_code = $medical_code;")
+        .query("select full_name, medical_code, national_code, phone_number, email, specialization, category.name as category, profile_image, consultation_fee, admin_commission_percentage, wallet_balance, status, availability, card_number, created_at, updated_at, ( group All[0].rate as rate from doctors where medical_code = $medical_code;")
         .bind(("medical_code", medical_code.into_inner()))
         .await?;
     let res: Vec<Value> = result.take(0).unwrap();
@@ -277,23 +306,31 @@ async fn get_doctors_by_medical_code(
 struct SignIn {
     email: String,
     password: String,
+    verify: bool,
 }
 #[post("/sign_in")]
 async fn sign_in(
     db: Data<Surreal<Client>>,
     data: actix_web::web::Json<SignIn>,
+    req: HttpRequest,
 ) -> Result<impl Responder, error::Error> {
-    info!("{:?}", data);
-    let SignIn { email, password } = data.into_inner();
+    let ip = req
+        .peer_addr()
+        .map(|addr| addr.ip().to_string())
+        .unwrap_or_else(|| "unknown".to_string());
+
+    let SignIn {
+        email,
+        password,
+        verify,
+    } = data.into_inner();
     let password = format!("{:x}", sha2::Sha256::digest(password.as_bytes()));
-    info!("{:?}", email);
     let mut result = db
         .query("select * from users where email = $email and password_hash = $password;")
         .bind(("email", email.clone()))
         .bind(("password", password.clone()))
         .await?;
     let res: Vec<User> = result.take(0).unwrap();
-    info!("{:?}", res);
     if res.is_empty() {
         let mut result2 = db
             .query("select * from doctors where email = $email and password_hash = $password;")
@@ -307,8 +344,27 @@ async fn sign_in(
                 .query("select value string::concat(category.title,'-', category.name) from $id;")
                 .bind(("id", doctor.id.clone()))
                 .await?;
+            if !verify {
+                new_log(
+                    db.as_ref().clone(),
+                    "sign_in".to_string(),
+                    format!("User {} signed in ip: {}", email, ip),
+                )
+                .await;
+                new_notification(
+                    db.as_ref().clone(),
+                    doctor.id.clone(),
+                    "general".to_string(),
+                    format!("Welcome back! your ip: {}", ip),
+                    "new".to_string(),
+                )
+                .await;
+            }
             let category_result: Vec<String> = category.take(0).unwrap();
-            let mut rating = db.query("select value (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE)[0].rate as rate from doctors where id = $id;").bind(("id", doctor.id.clone())).await?;
+            let mut rating = db
+                .query("select value ( group All[0].rate as rate from doctors where id = $id;")
+                .bind(("id", doctor.id.clone()))
+                .await?;
             info!("{:?}", rating);
             let rating_result: Vec<Option<f32>> = rating.take(0).unwrap();
             let doctor_json = json!({
@@ -332,18 +388,40 @@ async fn sign_in(
                     "status": doctor.status,
                     "availability": doctor.availability,
                     "cardNumber": doctor.card_number,
+                    "created_at": doctor.created_at,
+                    "updated_at": doctor.updated_at,
                 }
             });
             return Ok(HttpResponse::Ok().json(doctor_json));
         }
         let mut result3 = db
             .query("select * from admins where email = $email and password_hash = $password;")
-            .bind(("email", email))
+            .bind(("email", email.clone()))
             .bind(("password", password))
             .await?;
         let res3: Vec<Admin> = result3.take(0).unwrap();
         info!("{:?}", res3);
         if !res3.is_empty() {
+            if !verify {
+                new_log(
+                    db.as_ref().clone(),
+                    "sign_in".to_string(),
+                    format!("User {} signed in ip: {}", email, ip),
+                )
+                .await;
+                new_notification(
+                    db.as_ref().clone(),
+                    RecordId::from_table_key("admins", 0),
+                    "general".to_string(),
+                    format!(
+                        "admin {} with ip entered the system: {}",
+                        res3[0].id.clone(),
+                        ip
+                    ),
+                    "new".to_string(),
+                )
+                .await;
+            }
             let admin = res3.first().unwrap();
             let admin_json = json!({
                 "Admin": {
@@ -354,7 +432,9 @@ async fn sign_in(
                     "nationalCode": admin.national_code,
                     "birthDate": admin.birth_date,
                     "gender": admin.gender,
-                    "role": "Admin",
+                    "password_hash": admin.password_hash,
+                    "created_at": admin.created_at,
+                    "updated_at": admin.updated_at
                 }
             });
             return Ok(HttpResponse::Ok().json(admin_json));
@@ -362,6 +442,23 @@ async fn sign_in(
         return Ok(HttpResponse::Unauthorized().json("Unauthorized"));
     }
     let user = res.first().unwrap();
+    if !verify {
+        new_log(
+            db.as_ref().clone(),
+            "sign_in".to_string(),
+            format!("User {} signed in ip: {}", email, ip),
+        )
+        .await;
+        new_notification(
+            db.as_ref().clone(),
+            user.id.clone(),
+            "general".to_string(),
+            format!("Welcome back! your ip: {}", ip),
+            "new".to_string(),
+        )
+        .await;
+    }
+
     let user_json = json!({
         "Patient": {
             "id": user.id.to_string(),
@@ -446,8 +543,24 @@ async fn sign_up(
             "gender": user.gender,
             "walletBalance": user.wallet_balance,
             "role": "patient",
-                }
+        }
     });
+
+    new_log(
+        db.as_ref().clone(),
+        "user_created".to_string(),
+        format!("New user signed up: {} ({})", user.full_name, user.email),
+    )
+    .await;
+
+    new_notification(
+        db.as_ref().clone(),
+        user.id.clone(),
+        "general".to_string(),
+        "Welcome to our platform! Your account has been created successfully.".to_string(),
+        "new".to_string(),
+    )
+    .await;
 
     Ok(HttpResponse::Ok().json(user_json))
 }
@@ -557,9 +670,33 @@ async fn upsert_admin(
     }
 
     let mut result = result.await?;
-
     let result: Vec<Admin> = result.take(0).unwrap();
-    Ok(HttpResponse::Ok().json(result.first().as_ref().unwrap()))
+    let admin = result.first().unwrap();
+
+    new_log(
+        db.as_ref().clone(),
+        "admin_updated".to_string(),
+        format!("Admin updated: {} ({})", admin.full_name, admin.email),
+    )
+    .await;
+
+    new_notification(
+        db.as_ref().clone(),
+        admin.id.clone(),
+        "general".to_string(),
+        "Your profile has been updated successfully.".to_string(),
+        "new".to_string(),
+    )
+    .await;
+    new_notification(
+        db.as_ref().clone(),
+        RecordId::from_table_key("admins", 0),
+        "general".to_string(),
+        format!("Profile of admin {} got updated", admin.id),
+        "new".to_string(),
+    )
+    .await;
+    Ok(HttpResponse::Ok().json(admin))
 }
 
 #[get("/search/doctors")]
@@ -591,9 +728,8 @@ async fn get_doctors(
     let mut result = db
         .query(query_str.clone())
         .bind(("search_bar", query.search_bar.clone()))
-        .bind(("page", (query.page - 1) * 40));
-    let mut result = result.await?;
-
+        .bind(("page", (query.page - 1) * 40))
+        .await?;
     let res: Vec<Doctor> = result.take(0).unwrap();
     let res = res
         .iter()
@@ -624,6 +760,7 @@ async fn get_doctors(
         .collect_vec();
     Ok(HttpResponse::Ok().json(res))
 }
+
 #[post("/upsert_doctor")]
 async fn upsert_doctor(
     db: Data<Surreal<Client>>,
@@ -688,9 +825,35 @@ async fn upsert_doctor(
     }
 
     let mut result = result.await?;
-
     let result: Vec<Doctor> = result.take(0).unwrap();
-    Ok(HttpResponse::Ok().json(result.first().as_ref().unwrap()))
+    let doctor = result.first().unwrap();
+    new_log(
+        db.as_ref().clone(),
+        "doctor_updated".to_string(),
+        format!(
+            "Doctor updated: {} ({})",
+            doctor.full_name, doctor.medical_code
+        ),
+    )
+    .await;
+
+    new_notification(
+        db.as_ref().clone(),
+        doctor.id.clone(),
+        "general".to_string(),
+        "Your profile has been updated successfully.".to_string(),
+        "new".to_string(),
+    )
+    .await;
+    new_notification(
+        db.as_ref().clone(),
+        RecordId::from_table_key("admins", 0),
+        "general".to_string(),
+        format!("Profile of doctor {} got updated", doctor.id),
+        "new".to_string(),
+    )
+    .await;
+    Ok(HttpResponse::Ok().json(doctor))
 }
 
 #[get("/search/users")]
@@ -745,6 +908,7 @@ async fn get_users(
         .collect_vec();
     Ok(HttpResponse::Ok().json(res))
 }
+
 #[post("/upsert_user")]
 async fn upsert_user(
     db: Data<Surreal<Client>>,
@@ -795,8 +959,33 @@ async fn upsert_user(
 
     let mut result = result.await?;
     let result: Vec<User> = result.take(0).unwrap();
-    Ok(HttpResponse::Ok().json(result.first().as_ref().unwrap()))
+    let user = result.first().unwrap();
+    new_log(
+        db.as_ref().clone(),
+        "user_updated".to_string(),
+        format!("User updated: {} ({})", user.full_name, user.email),
+    )
+    .await;
+
+    new_notification(
+        db.as_ref().clone(),
+        user.id.clone(),
+        "general".to_string(),
+        "Your profile has been updated successfully.".to_string(),
+        "new".to_string(),
+    )
+    .await;
+    new_notification(
+        db.as_ref().clone(),
+        RecordId::from_table_key("admins", 0),
+        "general".to_string(),
+        format!("Profile of user {} got updated", user.id),
+        "new".to_string(),
+    )
+    .await;
+    Ok(HttpResponse::Ok().json(user))
 }
+
 #[delete("/delete_user/{id}")]
 async fn delete_entity(
     db: Data<Surreal<Client>>,
@@ -889,6 +1078,22 @@ async fn withdraw(
                 .unwrap();
         }
 
+        new_log(
+            db.as_ref().clone(),
+            "withdraw".to_string(),
+            format!("User {} withdrew {} from wallet", id, amount),
+        )
+        .await;
+
+        new_notification(
+            db.as_ref().clone(),
+            RecordId::from_str(id.as_str()).unwrap(),
+            "general".to_string(),
+            format!("Successfully withdrew {} from your wallet", amount),
+            "new".to_string(),
+        )
+        .await;
+
         Ok(HttpResponse::Ok().json("ok"))
     } else {
         Ok(HttpResponse::Ok().json("error"))
@@ -909,6 +1114,22 @@ async fn deposit(
         .await?;
     let result: Vec<User> = result.take(0).unwrap();
     if let Some(_user) = result.first() {
+        new_log(
+            db.as_ref().clone(),
+            "deposit".to_string(),
+            format!("User {} deposited {} to wallet", id, amount),
+        )
+        .await;
+
+        new_notification(
+            db.as_ref().clone(),
+            RecordId::from_str(id.as_str()).unwrap(),
+            "general".to_string(),
+            format!("Successfully deposited {} to your wallet", amount),
+            "new".to_string(),
+        )
+        .await;
+
         Ok(HttpResponse::Ok().json("ok"))
     } else {
         Ok(HttpResponse::Ok().json("error"))
@@ -930,7 +1151,7 @@ struct SessionWithInfo {
     target_birth_date: Option<surrealdb::Datetime>,
     target_gender: Option<String>,
     target_phone_number: Option<String>,
-    messages: Option<Vec<String>>,
+    messages: Vec<RecordId>,
     status: String,
     end_time: Option<String>,
     rating: Option<f32>,
@@ -1122,7 +1343,6 @@ async fn get_sessions(
         result = result.bind(("page", (filter.page - 1) * 40));
 
         let mut result = result.await?;
-        println!("{:#?}\n\n{:?}", query, result);
         let result: Vec<SessionWithInfo> = result.take(0).unwrap();
         let result = result
             .iter()
@@ -1147,7 +1367,7 @@ async fn get_sessions(
                     "target_birth_date": session.target_birth_date,
                     "target_gender": session.target_gender,
                     "target_phone_number": session.target_phone_number,
-                    "messages": session.messages,
+                    "messages": session.messages.iter().map(|message| message.to_string()).collect_vec(),
                     "status": session.status,
                     "end_time": session.end_time,
                     "rating": session.rating,
@@ -1175,8 +1395,9 @@ struct Notifications {
     admin: Option<RecordId>,
     type_: String,
     message: String,
+    status: String,
 }
-async fn new_notification(
+pub async fn new_notification(
     db: Surreal<Client>,
     id: RecordId,
     type_: String,
@@ -1192,6 +1413,7 @@ async fn new_notification(
                 doctor: Some(id),
                 type_,
                 message,
+                status,
             })
             .await
             .unwrap();
@@ -1204,6 +1426,7 @@ async fn new_notification(
                 user: Some(id),
                 type_,
                 message,
+                status,
             })
             .await
             .unwrap();
@@ -1216,6 +1439,7 @@ async fn new_notification(
                 admin: Some(id),
                 type_,
                 message,
+                status,
             })
             .await
             .unwrap();
@@ -1232,4 +1456,382 @@ async fn new_log(db: Surreal<Client>, action: String, details: String) {
         .content(Logs { action, details })
         .await
         .unwrap();
+}
+
+#[derive(Serialize, Deserialize)]
+struct NotificationQuery {
+    id: String,
+    role: String,
+}
+
+#[post("/notifications")]
+async fn get_notifications(
+    db: Data<Surreal<Client>>,
+    data: actix_web::web::Json<NotificationQuery>,
+) -> Result<impl Responder, error::Error> {
+    let NotificationQuery { id, role } = data.into_inner();
+    let mut notifications: Vec<Notifications> = Vec::new();
+    if role == "admin" {
+        notifications = db
+            .query("select * from notifications where admin = $id")
+            .bind(("id", RecordId::from_table_key("admins", 0)))
+            .await?
+            .take(0)
+            .unwrap();
+        if notifications.is_empty() {
+            return Ok(HttpResponse::Ok().json("empty"));
+        }
+        let notifications = notifications
+            .iter()
+            .map(|notification| {
+                json!({
+                    "doctor": notification.doctor,
+                    "user": notification.user,
+                    "admin": notification.admin.as_ref().unwrap().to_string(),
+                    "type": notification.type_,
+                    "message": notification.message,
+                    "status": notification.status,
+                })
+            })
+            .collect_vec();
+        return Ok(HttpResponse::Ok().json(notifications));
+    } else if role == "patient" {
+        notifications = db
+            .query("select * from notifications where user = $id")
+            .bind(("id", RecordId::from_str(id.as_str()).unwrap()))
+            .await?
+            .take(0)
+            .unwrap();
+        if notifications.is_empty() {
+            return Ok(HttpResponse::Ok().json("empty"));
+        }
+        let notifications = notifications
+            .iter()
+            .map(|notification| {
+                json!({
+                    "doctor": notification.doctor,
+                    "user": notification.user.as_ref().unwrap().to_string(),
+                    "admin": notification.admin,
+                    "type": notification.type_,
+                    "message": notification.message,
+                    "status": notification.status,
+                })
+            })
+            .collect_vec();
+        return Ok(HttpResponse::Ok().json(notifications));
+    } else if role == "doctor" {
+        notifications = db
+            .query("select * from notifications where doctor = $id")
+            .bind(("id", RecordId::from_str(id.as_str()).unwrap()))
+            .await?
+            .take(0)
+            .unwrap();
+        if notifications.is_empty() {
+            return Ok(HttpResponse::Ok().json("empty"));
+        }
+        let notifications = notifications
+            .iter()
+            .map(|notification| {
+                json!({
+                    "doctor": notification.doctor.as_ref().unwrap().to_string(),
+                    "user": notification.user,
+                    "admin": notification.admin,
+                    "type": notification.type_,
+                    "message": notification.message,
+                    "status": notification.status,
+                })
+            })
+            .collect_vec();
+        return Ok(HttpResponse::Ok().json(notifications));
+    }
+
+    Ok(HttpResponse::Ok().json("error"))
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct NewDoctorSubmission {
+    full_name: String,
+    medical_code: String,
+    phone_number: String,
+}
+
+#[post("/new_doctor")]
+async fn new_doctor(
+    db: Data<Surreal<Client>>,
+    data: actix_web::web::Json<NewDoctorSubmission>,
+) -> Result<impl Responder, error::Error> {
+    println!("{:?}", data);
+    let NewDoctorSubmission {
+        full_name,
+        medical_code,
+        phone_number,
+    } = data.into_inner();
+    new_notification(
+        db.as_ref().clone(),
+        RecordId::from_table_key("admins", 0),
+        "new_doctor".to_string(),
+        format!(
+            "{} requested to be a doctor with medical code {} and phone number {}",
+            full_name, medical_code, phone_number
+        ),
+        "new".to_string(),
+    )
+    .await;
+    Ok(HttpResponse::Ok().json("ok"))
+}
+
+#[get("/Session/{id}")]
+async fn get_session_with_id(
+    db: Data<Surreal<Client>>,
+    id: actix_web::web::Path<String>,
+) -> Result<impl Responder, error::Error> {
+    let result: Vec<SessionWithInfo> = db
+        .query(
+            "SELECT
+            id,
+            {{
+                id: doctor.id,
+                full_name: doctor.full_name,
+                gender: doctor.gender,
+                medical_code: doctor.medical_code,
+                specialization: doctor.specialization,
+                profile_image: doctor.profile_image
+    }} as doctor,
+            {{
+                id: patient.id,
+                full_name: patient.full_name,
+                gender: patient.gender
+    }} as patient,
+            target_full_name,
+            target_national_code,
+            target_birth_date,
+            target_gender,
+            target_phone_number,
+            messages,
+            status,
+            end_time,
+            rating,
+            feedback,
+            fee_paid,
+            admin_share,
+            created_at,
+            updated_at
+        FROM sessions where id = $id;",
+        )
+        .bind(("id", RecordId::from_str(id.as_str()).unwrap()))
+        .await?
+        .take(0)
+        .unwrap();
+    let result = result
+        .iter()
+        .map(|session| {
+            json!({
+                "id": session.id.to_string(),
+                "doctor": {
+                    "id": session.doctor.id.to_string(),
+                    "full_name": session.doctor.full_name,
+                    "gender": session.doctor.gender,
+                    "medical_code": session.doctor.medical_code,
+                    "specialization": session.doctor.specialization,
+                    "profile_image": session.doctor.profile_image,
+                },
+                "patient": {
+                    "id": session.patient.id.to_string(),
+                    "full_name": session.patient.full_name,
+                    "gender": session.patient.gender,
+                },
+                "target_full_name": session.target_full_name,
+                "target_national_code": session.target_national_code,
+                "target_birth_date": session.target_birth_date,
+                "target_gender": session.target_gender,
+                "target_phone_number": session.target_phone_number,
+                "messages": session.messages.iter().map(|message| message.to_string()).collect_vec(),
+                "status": session.status,
+                "end_time": session.end_time,
+                "rating": session.rating,
+                "feedback": session.feedback,
+                "fee_paid": session.fee_paid,
+                "admin_share": session.admin_share,
+                "created_at": session.created_at,
+                "updated_at": session.updated_at,
+            })
+        })
+        .collect_vec();
+    if result.is_empty() {
+        return Ok(HttpResponse::Ok().json("empty"));
+    }
+
+    Ok(HttpResponse::Ok().json(result.first().unwrap()))
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct RateSession {
+    id: String,
+    rating: i32,
+    feedback: String,
+}
+
+#[post("/rate")]
+async fn rate_session(
+    db: Data<Surreal<Client>>,
+    data: actix_web::web::Json<RateSession>,
+) -> Result<impl Responder, error::Error> {
+    let RateSession {
+        id,
+        rating,
+        feedback,
+    } = data.into_inner();
+    let result: Vec<model::Session> = db
+        .query("UPDATE sessions SET rating = $rating, feedback = $feedback WHERE id = $id;")
+        .bind(("id", RecordId::from_str(id.as_str()).unwrap()))
+        .bind(("rating", rating))
+        .bind(("feedback", feedback))
+        .await?
+        .take(0)
+        .unwrap();
+    Ok(HttpResponse::Ok().json("ok"))
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Messages {
+    messages: Vec<String>,
+}
+#[derive(Serialize, Deserialize, Debug)]
+struct ChatMessage {
+    id: RecordId,
+    sender: SenderIdentity,
+    content: String,
+    created_at: String,
+    receiver: RecordId,
+}
+#[derive(Serialize, Deserialize, Debug)]
+struct SenderIdentity {
+    full_name: String,
+    id: RecordId,
+}
+#[post("/get_messages")]
+async fn get_messages(
+    db: Data<Surreal<Client>>,
+    data: actix_web::web::Json<Messages>,
+) -> Result<impl Responder, error::Error> {
+    let Messages { messages } = data.into_inner();
+    let result: Vec<ChatMessage> = db
+        .query("select id ,sender.id,sender.full_name,content,created_at,receiver from messages where id in $id order created_at desc;")
+        .bind(("id", messages.iter().map(|message| RecordId::from_str(message.as_str()).unwrap()).collect_vec()))
+        .await?
+        .take(0)
+        .unwrap();
+
+    let result = result
+        .into_iter()
+        .map(|message| {
+            json!({
+                "id": message.id.to_string(),
+                "sender": {
+                    "id": message.sender.id.to_string(),
+                    "full_name": message.sender.full_name,
+                },
+                "content": message.content,
+                "created_at": message.created_at,
+                "receiver": message.receiver.to_string(),
+            })
+        })
+        .collect_vec();
+    Ok(HttpResponse::Ok().json(result))
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct SendMessage {
+    id: String,
+    sender: String,
+    content: String,
+    receiver: String,
+}
+#[derive(Serialize, Deserialize, Debug)]
+struct SendMessage2 {
+    sender: RecordId,
+    content: String,
+    receiver: RecordId,
+}
+#[post("/send_message")]
+async fn send_message(
+    db: Data<Surreal<Client>>,
+    data: actix_web::web::Json<SendMessage>,
+) -> Result<impl Responder, error::Error> {
+    let SendMessage {
+        id,
+        sender,
+        content,
+        receiver,
+    } = data.into_inner();
+    let result: Vec<Message> = db
+        .insert("messages")
+        .content(SendMessage2 {
+            sender: RecordId::from_str(sender.as_str()).unwrap(),
+            content,
+            receiver: RecordId::from_str(receiver.as_str()).unwrap(),
+        })
+        .await?;
+    let reciver_id = receiver.clone();
+    if let Some(s) = CONNECTED_USERS.lock().await.get_mut(&reciver_id) {
+        s.text(json!({"reason":"new_message"}).to_string())
+            .await
+            .unwrap();
+    }
+    let mut status = "waiting".to_string();
+    if sender.contains("admins") || sender.contains("doctors") {
+        status = "answered".to_string();
+    }
+
+    let res: Vec<model::Session> = db
+        .query("UPDATE $id SET messages += $message , status = $status ;")
+        .bind(("id", RecordId::from_str(id.as_str()).unwrap()))
+        .bind(("message", result.first().unwrap().id.clone()))
+        .bind(("status", status))
+        .await?
+        .take(0)
+        .unwrap();
+    println!("{res:?}");
+
+    Ok(HttpResponse::Ok().json("ok"))
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct IdEndSession {
+    id: String,
+}
+#[post("/end_session")]
+async fn end_session(
+    db: Data<Surreal<Client>>,
+    data: actix_web::web::Json<IdEndSession>,
+) -> Result<impl Responder, error::Error> {
+    let IdEndSession { id } = data.into_inner();
+    let id = RecordId::from_str(id.as_str()).unwrap();
+    println!("{id:?}");
+    let session_info: Option<model::Session> = db
+        .query("select * from sessions where id = $id;")
+        .bind(("id", id.clone()))
+        .await?
+        .take(0)
+        .unwrap();
+
+    if session_info.is_none() {
+        return Ok(HttpResponse::Ok().json("empty"));
+    }
+    let session_info = session_info.unwrap();
+    let result: Vec<model::Session> = db
+        .query("UPDATE sessions SET status = $status,end_time = time::now() WHERE id = $id;")
+        .bind(("id", id))
+        .bind(("status", "ended"))
+        .await?
+        .take(0)
+        .unwrap();
+    let result2: Vec<model::Doctor> = db
+        .query("UPDATE doctors SET availability = availability + 1 WHERE id = $id;")
+        .bind(("id", session_info.doctor))
+        .await?
+        .take(0)
+        .unwrap();
+
+    Ok(HttpResponse::Ok().json("ok"))
 }

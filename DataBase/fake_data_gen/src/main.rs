@@ -648,7 +648,7 @@ DEFINE FIELD target_national_code ON sessions TYPE option<string>;
 DEFINE FIELD target_birth_date ON sessions TYPE option<datetime>;
 DEFINE FIELD target_gender ON sessions TYPE option<string> ASSERT $value IN ['man','woman'];
 DEFINE FIELD target_phone_number ON sessions TYPE option<string>;
-DEFINE FIELD messages ON sessions TYPE option<array<record<messages>>>;
+DEFINE FIELD messages ON sessions TYPE array<record<messages>> DEFAULT [];
 DEFINE FIELD status ON sessions TYPE string DEFAULT 'new' ASSERT $value IN ['new', 'waiting' ,'answered', 'ended'];
 DEFINE FIELD end_time ON sessions TYPE option<datetime>;
 DEFINE FIELD rating ON sessions TYPE option<number>;
@@ -699,10 +699,10 @@ DEFINE FIELD updated_at ON withdrawals TYPE datetime VALUE time::now() DEFAULT t
 -- Create Notifications Table
 DEFINE TABLE notifications SCHEMAFULL;
 DEFINE FIELD doctor ON notifications TYPE option<record<doctors>>;
-DEFINE FIELD admin ON notifications TYPE option<record<doctors>>;
+DEFINE FIELD admin ON notifications TYPE option<record<admins>>;
 DEFINE FIELD user ON notifications TYPE option<record<users>>;
 DEFINE FIELD message ON notifications TYPE string;
-DEFINE FIELD type_ ON notifications TYPE string ASSERT $value IN ['performance', 'session', 'general'];
+DEFINE FIELD type_ ON notifications TYPE string ASSERT $value IN ['performance', 'session', 'general','new_doctor'];
 DEFINE FIELD status ON notifications TYPE string ASSERT $value IN ['new', 'read'];
 DEFINE FIELD created_at ON notifications TYPE datetime DEFAULT time::now() READONLY;
 DEFINE FIELD updated_at ON notifications TYPE datetime VALUE time::now() DEFAULT time::now();

@@ -13,7 +13,7 @@ import InfiniteScroll from "react-infinite-scroll-component";
 import { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { debounce } from "lodash";
-import { useLocation, useParams, useSearchParams } from "react-router";
+import {  useParams, useSearchParams } from "react-router";
 import DocCard from "@/Components/DocCard/DocCard";
 interface Doctors {
   full_name: string;
@@ -84,6 +84,7 @@ function Category() {
             );
             set_category(Array.from(categories));
           });
+          json
           return doctors;
         }
         return { error: "Failed to parse doctors" };

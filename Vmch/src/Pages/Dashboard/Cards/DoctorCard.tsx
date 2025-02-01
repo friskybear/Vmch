@@ -1,5 +1,4 @@
-import { AppContext } from "@/main";
-import { Dispatch, SetStateAction, useContext, useState } from "react";
+import { useState } from "react";
 import { DoctorFull } from "../Admin";
 
 function DoctorCard(props: {

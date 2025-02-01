@@ -1,19 +1,11 @@
 import { WobbleCard } from "@/Components/WobbleCard/WobbleCard";
-import {
-  ArrowDownWideNarrowIcon,
-  ArrowUpWideNarrowIcon,
-  PlusIcon,
-  SearchIcon,
-  Star,
-  User,
-  XIcon,
-} from "lucide-react";
+import { PlusIcon, SearchIcon, Star, User, XIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast, Toaster } from "sonner";
 import moment from "jalali-moment";
 import Counter from "@/Components/Counter/Counter";
 import { invoke } from "@tauri-apps/api/core";
-import { useContext, useEffect, useReducer, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { AppContext } from "@/main";
 import { useQuery } from "@tanstack/react-query";
@@ -72,7 +64,7 @@ export function Admins() {
   const [page, set_page] = useState(1);
   const [search_params] = useSearchParams();
   const app = useContext(AppContext);
-  const [t, i18] = useTranslation();
+  const [t] = useTranslation();
   const [visable_admin, set_visable_admin] = useState((page - 1) * 40 + 40);
   const [ended, set_ended] = useState(false);
   const [admins, set_admins] = useState<AdminFull[]>([]);
@@ -169,7 +161,6 @@ export function Admins() {
         let admins = await invoke<AdminFull[]>("fetch", {
           url: url.toString(),
         });
-        console.log(url);
         return admins;
       } catch (e) {
         return { error: "Failed to parse doctors" };
@@ -199,7 +190,6 @@ export function Admins() {
       url: `${app.appConfig.server}/upsert_admin`,
       payload: data,
     }).then((res) => {
-      console.log(res);
       if (res === "Conflict") {
         toast.error(t("login.sign_up.conflict"));
         set_disabled(false);
@@ -452,7 +442,6 @@ export function Admins() {
                   ) {
                     age--;
                   }
-                  console.log(age, birth_date, value);
                   return (
                     age >= 13 ||
                     t("login.sign_up.age_must_be_at_least_13_years")
@@ -538,7 +527,7 @@ export function Patients() {
   const [page, set_page] = useState(1);
   const [search_params] = useSearchParams();
   const app = useContext(AppContext);
-  const [t, i18] = useTranslation();
+  const [t] = useTranslation();
   const [visable_patient, set_visable_patient] = useState((page - 1) * 40 + 40);
   const [ended, set_ended] = useState(false);
   const [patient, set_patients] = useState<PatientFull[]>([]);
@@ -637,7 +626,6 @@ export function Patients() {
         let patients = await invoke<PatientFull[]>("fetch", {
           url: url.toString(),
         });
-        console.log(url);
         return patients;
       } catch (e) {
         return { error: "Failed to parse doctors" };
@@ -663,7 +651,6 @@ export function Patients() {
     if (selected_patient?.id) {
       data.id = selected_patient.id.toString();
     }
-    console.log(data);
     invoke<PatientFull | "Conflict" | "Internal server error" | string>(
       "post",
       {
@@ -671,7 +658,6 @@ export function Patients() {
         payload: data,
       }
     ).then((res) => {
-      console.log(res);
       if (res === "Conflict") {
         toast.error(t("login.sign_up.conflict"));
         set_disabled(false);
@@ -691,7 +677,6 @@ export function Patients() {
 
   useEffect(() => {
     if (isError) {
-      console.log("error");
     }
     if (isSuccess && data instanceof Array) {
       set_patients((prev) => {
@@ -955,7 +940,6 @@ export function Patients() {
                       ) {
                         age--;
                       }
-                      console.log(age, birth_date, value);
                       return (
                         age >= 13 ||
                         t("login.sign_up.age_must_be_at_least_13_years")
@@ -1096,7 +1080,7 @@ export function Doctors() {
   const [page, set_page] = useState(1);
   const [search_params] = useSearchParams();
   const app = useContext(AppContext);
-  const [t, i18] = useTranslation();
+  const [t] = useTranslation();
   const [visable_doctor, set_visable_doctor] = useState((page - 1) * 40 + 40);
   const [ended, set_ended] = useState(false);
   const [doctors, set_doctors] = useState<DoctorFull[]>([]);
@@ -1220,7 +1204,6 @@ export function Doctors() {
         let doctor = await invoke<DoctorFull[]>("fetch", {
           url: url.toString(),
         });
-        console.log(doctor);
         return doctor;
       } catch (e) {
         return { error: "Failed to parse doctors" };
@@ -1250,7 +1233,6 @@ export function Doctors() {
       url: `${app.appConfig.server}/upsert_doctor`,
       payload: data,
     }).then((res) => {
-      console.log(res);
       if (res === "Conflict") {
         toast.error(t("login.sign_up.conflict"));
         set_disabled(false);
@@ -1504,7 +1486,6 @@ export function Doctors() {
                       ) {
                         age--;
                       }
-                      console.log(age, birth_date, value);
                       return (
                         age >= 13 ||
                         t("login.sign_up.age_must_be_at_least_13_years")

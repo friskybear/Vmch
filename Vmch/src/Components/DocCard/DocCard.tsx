@@ -22,11 +22,13 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { Toaster, toast } from "sonner";
 
 import { invoke } from "@tauri-apps/api/core";
-
+interface IdSession {
+  id: string;
+}
 let server = "";
 let user_id = "";
 const request_doctor = async (medical_code: string, data?: Inputs) => {
-  const session_id = await invoke("post", {
+  const session_id = await invoke<IdSession>("post", {
     url: `${server}/add_session`,
     payload: {
       user_id: user_id,
@@ -34,8 +36,8 @@ const request_doctor = async (medical_code: string, data?: Inputs) => {
       guest_data: data ? data : null,
     },
   });
-  session_id;
-  window.location.href = `/Dashboard/Sessions/`;
+  console.log(session_id);
+  window.location.replace(`/Sessions/${session_id.id}`);
 };
 
 function DocCard(props: { align: string; item: Doctors }) {
@@ -161,7 +163,7 @@ function CardEng(props: { item: Doctors }) {
       ) : (
         <>
           <img
-            src={props.item.profile_image +"?"+ time}
+            src={props.item.profile_image + "?" + time}
             className="hidden h-0 w-0"
             onLoad={() => {
               setLoaded(true);

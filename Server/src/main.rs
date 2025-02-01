@@ -2,7 +2,7 @@ mod api;
 mod error;
 mod model;
 mod ws;
-type Sessions = Mutex<(HashMap<SocketAddr, Uuid>, HashMap<Uuid, Session>)>;
+type Sessions = Mutex<HashMap<String, String>>;
 use actix_files::Files;
 use actix_web::{
     get, middleware,
@@ -11,7 +11,11 @@ use actix_web::{
 };
 use actix_ws::{Message, Session};
 use api::{
-    add_session, delete_entity, deposit, get_admins, get_categories, get_categories_structured, get_doctors, get_doctors_by_category, get_doctors_by_medical_code, get_doctors_by_name, get_sessions, get_users, sign_in, sign_up, test, upsert_admin, upsert_doctor, upsert_user, withdraw
+    add_session, delete_entity, deposit, end_session, get_admins, get_categories,
+    get_categories_structured, get_doctors, get_doctors_by_category, get_doctors_by_medical_code,
+    get_doctors_by_name, get_messages, get_notifications, get_session_with_id, get_sessions,
+    get_users, new_doctor, new_notification, rate_session, send_message, sign_in, sign_up, test,
+    upsert_admin, upsert_doctor, upsert_user, withdraw,
 };
 use hashbrown::HashMap;
 use parking_lot::Mutex;
@@ -20,7 +24,7 @@ use serde_json::Value;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use surrealdb::{
     engine::remote::ws::{Client, Ws},
-    Surreal,
+    RecordId, Surreal,
 };
 use uuid::Uuid;
 use ws::ws;
@@ -57,6 +61,36 @@ impl Job for MyJob {
                     .bind(("id", session.id.clone()))
                     .await
                     .unwrap();
+                new_notification(
+                    db.clone(),
+                    RecordId::from_table_key("admins", 0),
+                    "session".to_string(),
+                    format!("session with id {} ended due to inactivity", session.id),
+                    "new".to_string(),
+                )
+                .await;
+                new_notification(
+                    db.clone(),
+                    session
+                        .doctor
+                        .clone()
+                        .unwrap_or(RecordId::from_table_key("doctor", "unknown")),
+                    "session".to_string(),
+                    format!("session with id {} ended due to inactivity", session.id),
+                    "new".to_string(),
+                )
+                .await;
+                new_notification(
+                    db.clone(),
+                    session
+                        .patient
+                        .clone()
+                        .unwrap_or(RecordId::from_table_key("patients", "unknown")),
+                    "session".to_string(),
+                    format!("session with id {} ended due to inactivity", session.id),
+                    "new".to_string(),
+                )
+                .await;
             }
         });
     }
@@ -90,10 +124,7 @@ async fn main() {
                 "/Health",
                 actix_web::web::get().to(|| async { HttpResponse::Ok().body("ok") }),
             )
-            .app_data(web::Data::new(Mutex::new((
-                HashMap::<SocketAddr, Uuid>::new(),
-                HashMap::<Uuid, Session>::new(),
-            ))))
+            .app_data(web::Data::new(Mutex::new(HashMap::<String, String>::new())))
             .service(get_doctors_by_category)
             .service(get_doctors_by_name)
             .service(get_doctors_by_medical_code)
@@ -113,6 +144,13 @@ async fn main() {
             .service(withdraw)
             .service(deposit)
             .service(get_sessions)
+            .service(get_notifications)
+            .service(new_doctor)
+            .service(get_session_with_id)
+            .service(rate_session)
+            .service(get_messages)
+            .service(send_message)
+            .service(end_session)
             .app_data(web::Data::new(db.clone()))
     })
     .bind(("127.0.0.1", 9000))

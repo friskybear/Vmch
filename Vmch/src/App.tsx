@@ -2,14 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Outlet } from "react-router";
 import "./App.css";
 import { useContext, useEffect, useState } from "react";
-
 import { AppContext } from "./main";
 import Header from "@/Components/Header/Header";
 import SplashScreen from "./Pages/SplashScreen/SplashScreen";
 import { invoke } from "@tauri-apps/api/core";
 import Fail from "./Pages/Fail/Fail";
 import { Admin, Doctor, Patient } from "./lib/utils";
-
+//@ts-ignore
 function App() {
   const [state, setState] = useState("");
   const [showSplash, setShowSplash] = useState<boolean | null>();
@@ -39,6 +38,7 @@ function App() {
           payload: {
             email: app.appConfig.user.email,
             password: app.appConfig.user.password,
+            verify: true,
           },
         }).then(async (res) => {
           if (res === "Unauthorized") {

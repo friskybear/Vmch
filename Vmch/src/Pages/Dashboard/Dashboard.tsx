@@ -20,7 +20,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 function Dashboard() {
   const app = useContext(AppContext);
-  const [t, i18n] = useTranslation();
+  const [t] = useTranslation();
   const { pathname } = useLocation();
   const nav = useNavigate();
   const [activeTab, setActiveTab] = useState(() => {
@@ -150,7 +150,7 @@ function Patient() {
   const banks = ["Mellat", "Melli", "Saderat", "Parsian", "Pasargad", "Saman"];
   const [depositAmount, setDepositAmount] = useState(0);
   const [withdrawAmount, setWithdrawAmount] = useState(0);
-  const handleDeposit = (id: string, amount: number) => {
+  const handleDeposit = (_id: string, amount: number) => {
     invoke("post", {
       url: `${app.appConfig.server}/deposit`,
       payload: { id: user.id, amount },
@@ -171,7 +171,7 @@ function Patient() {
         toast.error(t("site.dashboard.deposit_failed"));
       });
   };
-  const handleWithdraw = (id: string, amount: number) => {
+  const handleWithdraw = (_id: string, amount: number) => {
     invoke("post", {
       url: `${app.appConfig.server}/withdraw`,
       payload: { id: user.id, amount },
@@ -588,7 +588,7 @@ function Doctor() {
   const [withdrawAmount, setWithdrawAmount] = useState(0);
   const [selectedCard, setSelectedCard] = useState("");
 
-  const handleDeposit = (id: string, amount: number) => {
+  const handleDeposit = (_id: string, amount: number) => {
     invoke("post", {
       url: `${app.appConfig.server}/deposit`,
       payload: { id: user.id, amount },
@@ -610,7 +610,7 @@ function Doctor() {
       });
   };
 
-  const handleWithdraw = (id: string, amount: number) => {
+  const handleWithdraw = (_id: string, amount: number) => {
     invoke("post", {
       url: `${app.appConfig.server}/withdraw`,
       payload: { id: user.id, amount },

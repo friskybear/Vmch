@@ -7,10 +7,12 @@ export const WobbleCard = ({
   children,
   containerClassName,
   className,
+  onClick,
 }: {
   children: React.ReactNode;
   containerClassName?: string;
   className?: string;
+  onClick?: () => void;
 }) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
@@ -30,6 +32,7 @@ export const WobbleCard = ({
         setIsHovering(false);
         setMousePosition({ x: 0, y: 0 });
       }}
+      onClick={onClick}
       style={{
         transform: isHovering
           ? `translate3d(${mousePosition.x}px, ${mousePosition.y}px, 0) scale3d(1, 1, 1)`
@@ -71,7 +74,7 @@ const Noise = () => {
       className="absolute inset-0 w-full h-full scale-[1.2] transform opacity-10 [mask-image:radial-gradient(#fff,transparent,75%)]"
       style={{
         backgroundImage: "url(/noise.webp)",
-        backgroundSize: "30%",
+        backgroundSize: "10%",
       }}
     ></div>
   );

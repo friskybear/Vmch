@@ -45,7 +45,7 @@ function SignIn() {
     let password = await invoke<string>("argon2", { password: data.password });
     invoke<JSON | "Unauthorized">("post", {
       url: `${app.appConfig.server}/sign_in`,
-      payload: { email: data.email, password: password },
+      payload: { email: data.email, password: password, verify: false },
     }).then(async (res) => {
       if (res === "Unauthorized") {
         toast.error(t("login.sign_in.failed"));

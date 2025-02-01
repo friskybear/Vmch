@@ -3,24 +3,21 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { AppContext } from "@/main";
-import Chat from "../Chat/Chat";
 import Loader from "@/Components/Loader/Loader";
 import {
   ArrowDownWideNarrowIcon,
-  ArrowUpDown,
   ArrowUpWideNarrowIcon,
-  Search,
   SearchIcon,
   XIcon,
 } from "lucide-react";
 import { WobbleCard } from "@/Components/WobbleCard/WobbleCard";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { CategoryQuery } from "../Category/Category";
 import { debounce } from "lodash";
 import InfiniteScroll from "react-infinite-scroll-component";
 import moment from "jalali-moment";
 
-interface Session {
+export interface Session {
   id: string;
   doctor: {
     id: string;
@@ -55,7 +52,7 @@ export default function Sessions() {
   const [page, set_page] = useState(1);
   const [search_params] = useSearchParams();
   const app = useContext(AppContext);
-  const [t, i18] = useTranslation();
+  const [t] = useTranslation();
   const [visable_sessions, set_visable_sessions] = useState(
     (page - 1) * 40 + 40
   );
@@ -129,10 +126,11 @@ export default function Sessions() {
       className={`w-full h-full flex justify-center items-center flex-col text-text-900 ${
         app.appConfig.language === "fa" ? "font-fa" : "font-roboto"
       }`}
+      dir={app.appConfig.language === "fa" ? "rtl" : "ltr"}
     >
       <section id="search_bar" className="flex flex-row mb-4 mt-4 ">
         <button
-          className="w-12 mr-5 h-12  btn p-0 btn-secondary"
+          className="w-12 mr-5 ml-5 h-12  btn p-0 btn-secondary"
           onClick={() =>
             set_query({
               ...query,
@@ -214,6 +212,7 @@ export default function Sessions() {
 function SessionCard(props: { item: Session; align: string }) {
   const [t] = useTranslation();
   const app = useContext(AppContext);
+  const nav = useNavigate();
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -236,8 +235,11 @@ function SessionCard(props: { item: Session; align: string }) {
         <WobbleCard
           containerClassName="w-screen  mx-4 my-2 bg-background-300"
           className="p-4 cursor-pointer hover:bg-background-200 transition-colors noiseBackground"
+          onClick={() => {
+            nav("/Sessions/" + props.item.id);
+          }}
         >
-          <div className="flex flex-col gap-3 text-text-900 ">
+          <div className="flex flex-col gap-3 text-text-900 z-20" tabIndex={0}>
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
                 <div className="avatar">
@@ -247,13 +249,13 @@ function SessionCard(props: { item: Session; align: string }) {
                       <img
                         src={"/Images/vmch_color.png"}
                         alt="Avatar"
-                        className="bg-background-100 object-cover mask mask-squircle"
+                        className=" object-cover mask mask-squircle"
                       />
                     ) : (
                       <img
                         src={props.item.doctor.profile_image + "?" + Date.now()}
                         alt="Avatar"
-                        className="bg-background-100 object-cover mask mask-squircle"
+                        className=" object-cover mask mask-squircle"
                       />
                     )}
                   </div>

@@ -24,6 +24,9 @@ import Sessions from "./Pages/Sessions/Sessions";
 import Chat from "./Pages/Chat/Chat";
 import Settings from "./Pages/Dashboard/Settings";
 import Notification from "./Pages/Notification/Notification";
+import WebSocket from "@tauri-apps/plugin-websocket";
+import { invoke } from "@tauri-apps/api/core";
+
 interface AppContextType {
   appConfig: AppManager;
   setAppConfig: Dispatch<SetStateAction<AppManager>>;
@@ -33,13 +36,44 @@ export const AppContext = createContext<AppContextType>({
   appConfig: new AppManager({}),
   setAppConfig: () => {},
 });
-
+//@ts-ignore
+let ws = null;
 const AppProvider = ({ children }: { children: ReactNode }) => {
   const [appConfig, setAppConfig] = useState<AppManager>(new AppManager({}));
   i18next.changeLanguage(appConfig.language);
   useEffect(() => {
     localStorage.setItem("appConfig", JSON.stringify(appConfig));
+    const websocket = async () => {
+        
+      //@ts-ignore
+      if (ws === null && appConfig.user) {
+        ws = await WebSocket.connect(
+          appConfig.server.replace("http://", "ws://") + "/ws"
+        );
+        localStorage.setItem("ws", JSON.stringify(ws));
+        console.log("Connected to WebSocket");
+        ws.addListener((msg) => {
+          try {
+            console.log(msg);
+            if (msg.data?.toString()) {
+              const msg_json = JSON.parse(msg.data?.toString());
+              if (msg_json["reason"] === "new_message") {
+                invoke("emit_event", { event: "new_message", payload: "" });
+              }
+            }
+          } catch (err) {
+            console.error(err);
+          }
+        });
+
+        await ws.send(
+          JSON.stringify({ reason: "logged_in", id: appConfig.user!.id })
+        );
+      }
+    };
+    websocket();
   }, [appConfig]);
+
   let element = document.getElementsByTagName("html")[0];
   if (element) {
     element.setAttribute("data-theme", appConfig.theme);
@@ -64,12 +98,11 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
             <Route path="Dashboard/" element={<Dashboard />}>
               <Route path="Notification" element={<Notification />} />
               <Route path="Settings" element={<Settings />} />
-              <Route path="Sessions/" element={<Sessions />}>
-                <Route path=":id" element={<Chat />} />
-              </Route>
+              <Route path="Sessions/" element={<Sessions />}></Route>
             </Route>
           </Route>
           <Route path="SignIn" element={<SignIn />} />
+          <Route path="/Sessions/:id" element={<Chat />} />
           <Route path="ForgotPassword" element={<ComingSoon />} />
           <Route path="SignUp" element={<SignUp />} />
           <Route path="*" element={<ComingSoon />} />

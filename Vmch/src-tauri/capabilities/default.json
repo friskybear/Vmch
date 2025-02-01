@@ -21,6 +21,7 @@
     "websocket:default",
     "core:window:allow-destroy",
     "opener:default",
-    "os:default"
+    "os:default",
+    "websocket:default"
   ]
 }

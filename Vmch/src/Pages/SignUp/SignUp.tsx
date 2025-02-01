@@ -113,7 +113,7 @@ function SignUp() {
               id="national_code"
               placeholder={t("login.sign_up.national_code")}
               className={`mt-1 input input-bordered input-ghost  max-h-9 text-sm rounded-md  shadow-sm ${
-                app.appConfig.language === "fa" ? "text-right" : ""
+                app.appConfig.language === "fa" ? "text-right pr-8" : ""
               }`}
               {...register("national_code", {
                 required: t("login.sign_up.national_code_is_required"),
@@ -296,7 +296,7 @@ function SignUp() {
           <p className="text-sm text-center">
             {t("login.sign_up.already_have_an_account")}
 
-            <NavLink to="/Login" className="ml-1 underline text-text-600">
+            <NavLink to="/SignIn" className="ml-1 underline text-text-600">
               {t("login.sign_up.login")}
             </NavLink>
           </p>
@@ -329,6 +329,9 @@ function SignUp() {
       <dialog
         id="are_you_a_doctor"
         className="modal"
+        style={{
+          direction: app.appConfig.language === "fa" ? "rtl" : "ltr",
+        }}
         onClick={(e) => {
           if (e.target === document.getElementById("are_you_a_doctor")) {
             (
@@ -360,16 +363,24 @@ function SignUp() {
             onSubmit={(e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
-              const medicalCode = formData.get("medical_code") as string;
-              const fullName = formData.get("full_name") as string;
-              const phoneNumber = formData.get("phone_number") as string;
-              invoke("doctor_sign_up", {
-                medicalCode,
-                fullName,
-                phoneNumber,
+              const medical_code = formData.get("medical_code") as string;
+              const full_name = formData.get("full_name") as string;
+              const phone_number = formData.get("phone_number") as string;
+              invoke("post", {
+                url: `${app.appConfig.server}/new_doctor`,
+                payload: {
+                  medical_code,
+                  full_name,
+                  phone_number,
+                },
               }).then((res) => {
-                if (res === "ok") {
+                if (JSON.stringify(res) === JSON.stringify("ok")) {
                   toast.success(t("login.sign_up.doctor_sign_up_success"));
+                  (
+                    document.getElementById(
+                      "are_you_a_doctor"
+                    ) as HTMLDialogElement
+                  ).close();
                 } else {
                   toast.error(t("login.sign_up.doctor_sign_up_failed"));
                 }

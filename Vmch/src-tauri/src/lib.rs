@@ -10,6 +10,7 @@ struct AppData {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_websocket::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
         .manage(tokio::sync::Mutex::new(AppData {
@@ -27,7 +28,9 @@ pub fn run() {
             fetch_text,
             emit_event,
             post,
-            argon2
+            argon2,
+            get_messages,
+            send_message
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

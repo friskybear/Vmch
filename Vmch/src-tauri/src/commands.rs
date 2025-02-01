@@ -1,6 +1,11 @@
-use std::time::Instant;
+use std::{
+    io::{Read, Write},
+    time::Instant,
+};
 
-use serde_json::Value;
+use base64::prelude::*;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use tauri::{Emitter, Manager, PhysicalSize, Runtime, State};
 
 use crate::AppData;
@@ -94,4 +99,63 @@ pub async fn emit_event<R: Runtime>(
 ) -> Result<(), String> {
     let _ = window.emit(&event, payload);
     Ok(())
+}
+
+#[derive(Serialize, Deserialize)]
+struct Message {
+    id: String,
+    content: String,
+    sender: Sender,
+    receiver: String,
+    created_at: String,
+}
+#[derive(Serialize, Deserialize)]
+struct Sender {
+    id: String,
+    full_name: String,
+}
+#[tauri::command]
+pub async fn get_messages(url: String, messages: Vec<String>) -> Result<Value, String> {
+    if messages.is_empty() {
+        return Ok(json!([]));
+    }
+    let mut messages: Vec<Message> =
+        serde_json::from_value(post(url, json!({"messages": messages})).await.unwrap()).unwrap();
+    for message in &mut messages {
+        let mut decompressed = Vec::new();
+        let mut decompressor = brotli::DecompressorWriter::new(&mut decompressed, 4096);
+        decompressor
+            .write_all(&BASE64_URL_SAFE.decode(message.content.as_str()).unwrap())
+            .unwrap();
+        drop(decompressor);
+        message.content = String::from_utf8(decompressed).unwrap();
+    }
+
+    Ok(json!(messages))
+}
+#[tauri::command]
+pub async fn send_message(
+    url: String,
+    id: String,
+    content: String,
+    sender: String,
+    receiver: String,
+) {
+    let mut compressed = Vec::new();
+    let mut compressor = brotli::CompressorWriter::new(&mut compressed, 4096, 11, 22);
+    compressor.write_all(content.as_bytes()).unwrap();
+    drop(compressor);
+    post(
+        url,
+        json!(
+            {
+                "id": id,
+                "content": BASE64_URL_SAFE.encode(compressed),
+                "sender": sender,
+                "receiver": receiver
+            }
+        ),
+    )
+    .await
+    .unwrap();
 }

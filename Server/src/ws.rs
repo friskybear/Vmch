@@ -37,7 +37,8 @@ pub async fn ws(
                                     let _ = session.text("connected").await;
                                     let mut lock = CONNECTED_USERS.lock().await;
                                     println!("uu:{:?}", lock.keys().collect_vec());
-                                    lock.insert(uuid.to_string(), session.clone());
+                                    *lock.entry(uuid.to_string()).or_insert(session.clone()) =
+                                        session.clone();
                                     println!("{:?}", lock.keys().collect_vec());
                                 }
                             }

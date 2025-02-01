@@ -62,7 +62,7 @@ async fn get_doctors_by_category(
     } else {
         "category.title = $category and "
     };
-    let mut query_str = format!("select full_name, specialization, profile_image, consultation_fee, availability,medical_code, status,{} (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE group All)[0].rate as rate from doctors where {} status = 'active' and availability > 0",str,category_all);
+    let mut query_str = format!("select full_name, specialization, profile_image, consultation_fee, availability,medical_code, status,{} (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE group all)[0].rate as rate from doctors where {} status = 'active' and availability > 0",str,category_all);
     if let Some(gender) = query.gender.clone() {
         query_str.push_str(" and gender = $gender");
     }
@@ -282,7 +282,7 @@ async fn get_doctors_by_name(
     db: Data<Surreal<Client>>,
 ) -> Result<impl Responder, error::Error> {
     let mut result = db
-        .query("select full_name, specialization, profile_image, consultation_fee, availability, status, ( group All[0].rate as rate from doctors where name @@ $name and status = 'active' and availability > 0;")
+        .query("select full_name, specialization, profile_image, consultation_fee, availability, status, (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE group all)[0].rate as rate from doctors where name @@ $name and status = 'active' and availability > 0;")
         .bind(("name", name.into_inner()))
         .await?;
     let res: Vec<Value> = result.take(0).unwrap();
@@ -295,7 +295,7 @@ async fn get_doctors_by_medical_code(
     db: Data<Surreal<Client>>,
 ) -> Result<impl Responder, error::Error> {
     let mut result = db
-        .query("select full_name, medical_code, national_code, phone_number, email, specialization, category.name as category, profile_image, consultation_fee, admin_commission_percentage, wallet_balance, status, availability, card_number, created_at, updated_at, ( group All[0].rate as rate from doctors where medical_code = $medical_code;")
+        .query("select full_name, medical_code, national_code, phone_number, email, specialization, category.name as category, profile_image, consultation_fee, admin_commission_percentage, wallet_balance, status, availability, card_number, created_at, updated_at, (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE group all)[0].rate as rate from doctors where medical_code = $medical_code;")
         .bind(("medical_code", medical_code.into_inner()))
         .await?;
     let res: Vec<Value> = result.take(0).unwrap();
@@ -361,10 +361,7 @@ async fn sign_in(
                 .await;
             }
             let category_result: Vec<String> = category.take(0).unwrap();
-            let mut rating = db
-                .query("select value ( group All[0].rate as rate from doctors where id = $id;")
-                .bind(("id", doctor.id.clone()))
-                .await?;
+            let mut rating = db.query("select value (select math::mean(rating) as rate from sessions where doctor = $parent.id and rating != NONE group all)[0].rate as rate from doctors where id = $id;").bind(("id", doctor.id.clone())).await?;
             info!("{:?}", rating);
             let rating_result: Vec<Option<f32>> = rating.take(0).unwrap();
             let doctor_json = json!({

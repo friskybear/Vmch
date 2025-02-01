@@ -126,7 +126,7 @@ const Chat: React.FC = () => {
         dir={app.appConfig.language === "fa" ? "rtl" : "ltr"}
       />
       {session ? (
-        <div className=" h-[200dvh] md:h-screen  noiseBackground bg-background-50 flex items-center flex-col justify-center p-4">
+        <div className=" h-[200dvh] md:h-screen  noiseBackground bg-background-50 flex items-center flex-col justify-start md:justify-center p-4 ">
           <div className="w-full max-w-4xl bg-white shadow-2xl rounded-3xl overflow-hidden flex flex-col md:flex-row">
             {/* Admin/Doctor Side */}
             <div
@@ -134,34 +134,36 @@ const Chat: React.FC = () => {
               dir={app.appConfig.language === "fa" ? "rtl" : "ltr"}
             >
               <div className="flex flex-col h-auto w-10/12 m-5 justify-center items-center bg-green-900/40 rounded-xl ">
-                <div className="relative z-10 p-6 text-white">
+                <div className="relative z-10 p-6 text-white text-center">
                   <h2 className="text-2xl font-bold mb-4">
                     {session?.doctor.full_name}
                   </h2>
                   <p className="">{session?.doctor.specialization}</p>
                 </div>
                 {session?.target_full_name && (
-                  <div className="relative z-10 p-6 text-white w-full">
-                    <h2 className="text-2xl font-bold mb-4 break-words text-pretty line-clamp-none overflow-hidden w-full ">
-                      {session.target_full_name || "asdsad"}
+                  <div className="relative z-10 p-6 text-white w-full -mt-10 text-center">
+                    <h2 className="text-2xl font-bold mb-4 break-words text-pretty  text-center line-clamp-none overflow-hidden w-full  ">
                       {t("site.dashboard.guest_full_name")}
+                      <br />
+                      {session.target_full_name}
                     </h2>
-                    <p className="break-words text-pretty line-clamp-none overflow-hidden w-full">
-                      {session.target_national_code || "123123112"}
+                    <p className="break-words text-pretty line-clamp-none overflow-hidden w-full ">
                       {t("site.dashboard.guest_national_code")}
+                      <br />
+                      {session.target_national_code}
                     </p>
                   </div>
                 )}
               </div>
               {session?.status === "ended" && (
-                <div className=" z-10 p-6 bg-green-800/30 rounded-xl w-10/12 text-text-100  font-bold text-center">
+                <div className=" z-10 p-6 bg-green-800/30 rounded-xl w-10/12 text-text-100  font-bold text-center ">
                   <div className="flex items-center mb-4 flex-col justify-center space-y-3">
                     <span className="">{t("site.dashboard.rate_session")}</span>
                     <div className="grid grid-cols-5  ">
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
-                          className={`w-10 h-10 ${
+                          className={`w-7 h-7 ${
                             i < stars!
                               ? "fill-yellow-500 text-yellow-500"
                               : "fill-text-100 dark:text-text-800 text-zinc-700"
@@ -178,7 +180,7 @@ const Chat: React.FC = () => {
                       ))}
                     </div>
                   </div>
-                  <h2 className="text-2xl font-bold mb-4 ">
+                  <h2 className="text-md font-bold mb-4 ">
                     {t("site.dashboard.session_end_at")}:{" "}
                     {app.appConfig.language === "fa"
                       ? moment(session!.end_time || Date.now())
@@ -198,13 +200,16 @@ const Chat: React.FC = () => {
                         })}
                   </h2>
                   <textarea
-                    className={`w-full p-2 mb-4 textarea textarea-primary bg-background-100 text-text-800 h-40 ${
+                    className={`w-full p-2 mb-4 rounded-xl bg-background-100
+                          text-text-800 h-40 ${
                       app.appConfig.language === "fa"
                         ? "text-right"
                         : "text-left"
                     }`}
                     value={feedback}
-                    disabled={!!session.rating}
+                    disabled={
+                      !session.rating && app.appConfig.user?.role !== "patient"
+                    }
                     onChange={(e) => {
                       if (
                         app.appConfig.user?.role === "patient" &&
@@ -215,7 +220,10 @@ const Chat: React.FC = () => {
                     }}
                     placeholder={t("site.dashboard.feedback_placeholder")}
                   />
-                  <button className="btn min-w-0 w-full" onClick={HandelSubmit}>
+                  <button
+                    className="btn min-w-0 w-full btn-secondary"
+                    onClick={HandelSubmit}
+                  >
                     {t("site.dashboard.submit_feedback")}
                   </button>
                 </div>
@@ -332,10 +340,8 @@ const Chat: React.FC = () => {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder={t(
-                    `site.chat.${
-                      session.status !== "ended"
-                        ? "type_your_message..."
-                        : "ended"
+                    `site.${
+                      session.status !== "ended" ? "type_your_message" : "ended"
                     }`
                   )}
                   className="flex-grow p-2 border rounded-xl bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -366,7 +372,7 @@ const Chat: React.FC = () => {
             </div>
           </div>
           <div
-            className="md:hidden flex justify-start items-center flex-col mt-10 rounded-lg  bg-gradient-to-br from-blue-500 to-purple-600 relative overflow-hidden cool"
+            className="md:hidden w-full flex justify-start items-center flex-col mt-14  rounded-lg  bg-gradient-to-br from-blue-500 to-purple-600 relative overflow-hidden cool"
             dir={app.appConfig.language === "fa" ? "rtl" : "ltr"}
           >
             <div className="flex flex-col h-auto w-10/12 m-5 justify-center items-center bg-green-900/40 rounded-xl ">
@@ -377,14 +383,16 @@ const Chat: React.FC = () => {
                 <p className="text-center">{session?.doctor.specialization}</p>
               </div>
               {session?.target_full_name && (
-                <div className="relative z-10 p-6 text-white w-full">
-                  <h2 className="text-2xl font-bold mb-4 break-words text-pretty line-clamp-none overflow-hidden w-full ">
-                    {session.target_full_name || "asdsad"}
+                <div className="relative z-10 p-6 text-white w-full -mt-10 text-center">
+                  <h2 className="text-2xl font-bold mb-4 break-words text-pretty  text-center line-clamp-none overflow-hidden w-full  ">
                     {t("site.dashboard.guest_full_name")}
+                    <br />
+                    {session.target_full_name}
                   </h2>
-                  <p className="break-words text-pretty line-clamp-none overflow-hidden w-full">
-                    {session.target_national_code || "123123112"}
+                  <p className="break-words text-pretty line-clamp-none overflow-hidden w-full ">
                     {t("site.dashboard.guest_national_code")}
+                    <br />
+                    {session.target_national_code}
                   </p>
                 </div>
               )}
@@ -414,7 +422,7 @@ const Chat: React.FC = () => {
                     ))}
                   </div>
                 </div>
-                <h2 className="text-2xl font-bold mb-4 ">
+                <h2 className="text-md font-bold mb-4 ">
                   {t("site.dashboard.session_end_at")}:{" "}
                   {app.appConfig.language === "fa"
                     ? moment(session!.end_time || Date.now())
@@ -435,11 +443,13 @@ const Chat: React.FC = () => {
                       )}
                 </h2>
                 <textarea
-                  className={`w-full p-2 mb-4 textarea textarea-primary bg-background-100 text-text-800 h-40 ${
+                  className={`w-full p-2 mb-4 rounded-xl bg-background-100 text-text-800 h-40 ${
                     app.appConfig.language === "fa" ? "text-right" : "text-left"
                   }`}
                   value={feedback}
-                  disabled={!!session.rating}
+                  disabled={
+                    !session.rating && app.appConfig.user?.role !== "patient"
+                  }
                   onChange={(e) => {
                     if (
                       app.appConfig.user?.role === "patient" &&
@@ -450,7 +460,10 @@ const Chat: React.FC = () => {
                   }}
                   placeholder={t("site.dashboard.feedback_placeholder")}
                 />
-                <button className="btn min-w-0 w-full" onClick={HandelSubmit}>
+                <button
+                  className="btn min-w-0 w-full btn-secondary"
+                  onClick={HandelSubmit}
+                >
                   {t("site.dashboard.submit_feedback")}
                 </button>
               </div>

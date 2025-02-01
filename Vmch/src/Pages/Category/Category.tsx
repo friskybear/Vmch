@@ -137,7 +137,7 @@ function Category() {
         app.appConfig.language === "fa" ? "font-fa" : "font-roboto"
       }`}
     >
-      <section id="search_bar" className="flex flex-row mb-8 ">
+      <section id="search_bar" className="flex flex-row mb-8 text-text-800">
         <button
           className="w-12 mr-5 h-12  btn p-0 btn-secondary"
           onClick={() =>

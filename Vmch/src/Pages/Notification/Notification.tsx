@@ -12,7 +12,7 @@ import moment from "jalali-moment";
 interface Notification {
   id: string;
   message: string;
-  type_: "performance" | "session" | "general" | "new_doctor";
+  type: "performance" | "session" | "general" | "new_doctor";
   created_at: string;
 }
 
@@ -139,10 +139,10 @@ function NotificationCard(props: { item: Notification; align: string }) {
               <div className="flex flex-col items-end gap-2 ml-4">
                 <span
                   className={`badge noiseBackground ${getTypeBadgeClass(
-                    props.item.type_
+                    props.item.type
                   )}`}
                 >
-                  {t(`notification_type.${props.item.type_}`)}
+                  {t(`notification_type.${props.item.type}`)}
                 </span>
                 <span className="opacity-70 text-sm text-center">
                   {app.appConfig.language === "fa"
@@ -209,7 +209,7 @@ function NotificationCard(props: { item: Notification; align: string }) {
               </button>
             </form>
             <h3 className="font-bold text-lg mb-4">
-              {t(`notification_type.${props.item.type_}`)} {t("notification")}
+              {t(`notification_type.${props.item.type}`)} {t("notification")}
             </h3>
             <div className="space-y-3">
               <p className="text-sm">
@@ -219,7 +219,7 @@ function NotificationCard(props: { item: Notification; align: string }) {
               <p className="text-sm">
                 <span className="font-semibold">{t("type")}:</span>{" "}
                 <span
-                  className={`badge ${getTypeBadgeClass(props.item.type_)}`}
+                  className={`badge ${getTypeBadgeClass(props.item.type)}`}
                 >
                   {t(`notification_type`)}
                 </span>

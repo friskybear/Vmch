@@ -299,7 +299,7 @@ function AdminSettings() {
             {disabled ? (
               <Loader size={40} color={[6, 147, 126]} />
             ) : (
-              t("login.sign_up.submit")
+              t("site.submit")
             )}
           </button>
         </form>
@@ -737,7 +737,7 @@ function DoctorSettings() {
             {disabled ? (
               <Loader size={40} color={[6, 147, 126]} />
             ) : (
-              t("login.sign_up.submit")
+              t("site.submit")
             )}
           </button>
         </form>
@@ -764,12 +764,7 @@ function PatientSettings() {
   });
   const [disabled, set_disabled] = useState(false);
   const { t } = useTranslation();
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    control,
-  } = useForm<PatientFull>();
+  const { register, handleSubmit, setValue, control } = useForm<PatientFull>();
   useEffect(() => {
     if (selected_patient !== null) {
       setValue("full_name", selected_patient.full_name);
@@ -1065,7 +1060,7 @@ function PatientSettings() {
             {disabled ? (
               <Loader size={40} color={[6, 147, 126]} />
             ) : (
-              t("login.sign_up.submit")
+              t("site.submit")
             )}
           </button>
         </form>

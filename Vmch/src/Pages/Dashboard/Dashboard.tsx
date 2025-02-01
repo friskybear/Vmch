@@ -285,7 +285,10 @@ function Patient() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Upcoming Appointments Card */}
-            <WobbleCard containerClassName="bg-background-300 " className="p-6 noiseBackground">
+            <WobbleCard
+              containerClassName="bg-background-300 "
+              className="p-6 noiseBackground"
+            >
               <h3 className=" mb-2">
                 {t("site.dashboard.upcoming_appointments")}
               </h3>
@@ -311,7 +314,10 @@ function Patient() {
             </WobbleCard>
 
             {/* Medical Records Card */}
-            <WobbleCard containerClassName="bg-background-300 " className="p-6 noiseBackground">
+            <WobbleCard
+              containerClassName="bg-background-300 "
+              className="p-6 noiseBackground"
+            >
               <h3 className=" mb-2">{t("site.dashboard.medical_records")}</h3>
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-bold">12</span>
@@ -413,7 +419,10 @@ function Patient() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Rest of the cards */}
             {/* Upcoming Appointments Card */}
-            <WobbleCard containerClassName="bg-background-300 " className="p-6 noiseBackground">
+            <WobbleCard
+              containerClassName="bg-background-300 "
+              className="p-6 noiseBackground"
+            >
               <h3 className=" mb-2 ">
                 {t("site.dashboard.upcoming_appointments")}
               </h3>
@@ -425,7 +434,10 @@ function Patient() {
             </WobbleCard>
 
             {/* Recent Consultations Card */}
-            <WobbleCard containerClassName="bg-background-300 " className="p-6 noiseBackground">
+            <WobbleCard
+              containerClassName="bg-background-300 "
+              className="p-6 noiseBackground"
+            >
               <h3 className=" mb-2 ">
                 {t("site.dashboard.recent_consultations")}
               </h3>
@@ -436,7 +448,10 @@ function Patient() {
             </WobbleCard>
 
             {/* Medical Records Card */}
-            <WobbleCard containerClassName="bg-background-300 " className="p-6 noiseBackground">
+            <WobbleCard
+              containerClassName="bg-background-300 "
+              className="p-6 noiseBackground"
+            >
               <h3 className=" mb-2">{t("site.dashboard.medical_records")}</h3>
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-bold">12</span>
@@ -730,7 +745,10 @@ function Doctor() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Rating Card */}
-          <WobbleCard containerClassName="bg-background-300 " className="p-6 noiseBackground">
+          <WobbleCard
+            containerClassName="bg-background-300 "
+            className="p-6 noiseBackground"
+          >
             <h3 className="mb-2">{t("site.dashboard.rating")}</h3>
             <div className="flex items-center gap-2">
               <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
@@ -747,14 +765,14 @@ function Doctor() {
             className="p-6 noiseBackground"
           >
             <h3 className="mb-2">{t("site.dashboard.appointments_today")}</h3>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-sm mt-2">
-              3 {t("site.dashboard.more_than_yesterday")}
-            </p>
+            <div className="text-2xl font-bold">{10 - user.availability}</div>
           </WobbleCard>
 
           {/* Earnings Card */}
-          <WobbleCard containerClassName="bg-background-300 " className="p-6 noiseBackground">
+          <WobbleCard
+            containerClassName="bg-background-300 "
+            className="p-6 noiseBackground"
+          >
             <h3 className="mb-2">{t("site.dashboard.earnings_this_month")}</h3>
             <div className="text-2xl font-bold">${(4650).toFixed(2)}</div>
             <p className="text-sm mt-2">

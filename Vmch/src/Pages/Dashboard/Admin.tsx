@@ -504,7 +504,7 @@ export function Admins() {
               {disabled ? (
                 <Loader size={40} color={[6, 147, 126]} />
               ) : (
-                t("login.sign_up.submit")
+                t("site.submit")
               )}
             </button>
             <button
@@ -1052,7 +1052,7 @@ export function Patients() {
               {disabled ? (
                 <Loader size={40} color={[6, 147, 126]} />
               ) : (
-                t("login.sign_up.submit")
+                t("site.submit")
               )}
             </button>
             <button
@@ -1744,7 +1744,7 @@ export function Doctors() {
               {disabled ? (
                 <Loader size={40} color={[6, 147, 126]} />
               ) : (
-                t("login.sign_up.submit")
+                t("site.submit")
               )}
             </button>
             <button

@@ -17,7 +17,7 @@
           "width": 650,
           "height": 350,
           "alwaysOnTop": true,
-          "transparent": false,
+          "transparent": true,
           "shadow":false,
           "decorations":false,
           "center":true
@@ -27,7 +27,7 @@
         "csp": {
           "default-src": "'self' customprotocol: asset:",
           "connect-src": "ipc: http://ipc.localhost",
-          "font-src": ["https://fonts.google.com/"],
+          "font-src": ["*"],
           "img-src": "'self' asset: http://asset.localhost blob: data: *",
           "style-src": "'unsafe-inline' 'self' https://fonts.googleapis.com"
         },

@@ -8,6 +8,7 @@ import {
   ArrowDownWideNarrowIcon,
   ArrowUpWideNarrowIcon,
   SearchIcon,
+  Star,
   XIcon,
 } from "lucide-react";
 import { WobbleCard } from "@/Components/WobbleCard/WobbleCard";
@@ -67,7 +68,7 @@ export default function Sessions() {
   });
 
   const { data, isError, isSuccess } = useQuery({
-    queryKey: ["sessions", query, page],
+    queryKey: ["sessions", app.appConfig.user?.id, query, page],
     queryFn: async () => {
       let url = new URL(`${app.appConfig.server}/sessions`);
       Object.entries(query).forEach(([key, value]) => {
@@ -321,8 +322,8 @@ function SessionCard(props: { item: Session; align: string }) {
                 </span>
 
                 {props.item.rating && (
-                  <span className=" w-20 text-clip  overflow-hidden   whitespace-nowrap">
-                    {t("rating")}: {props.item.rating || 0.0}/5 ⭐
+                  <span className="w-28 text-clip  overflow-hidden flex-row flex whitespace-nowrap items-center justify-center gap-2">
+                    {t("rating")}: {props.item.rating || 0.0}/5 <Star className="fill-yellow-500 text-yellow-500 h-6 w-6 mb-1" />
                   </span>
                 )}
               </div>
